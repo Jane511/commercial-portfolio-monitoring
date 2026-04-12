@@ -13,6 +13,10 @@ This repo takes expected-loss outputs and turns them into monitoring-ready ECL, 
 - optional pricing context from `RAROC-pricing-and-return-hurdle`
 - prior-period snapshots and reviewer-supplied overrides staged under `data/`
 
+## Downstream consumers
+
+No required downstream modelling repo. Outputs are intended for monitoring packs, impairment review, and management reporting, with optional reuse in capital or pricing discussion packs.
+
 ## Main outputs
 
 - `data/output/facility_ecl.csv`

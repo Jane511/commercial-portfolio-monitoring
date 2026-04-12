@@ -14,7 +14,7 @@ Upstream inputs:
 - optional pricing context from `RAROC-pricing-and-return-hurdle`
 - prior-period snapshots and reviewer inputs staged under `data/`
 
-Downstream use:
+Downstream consumers:
 - portfolio monitoring packs and early-warning review
 - impairment and stage-movement summaries
 - employer-ready disclosure and management-reporting examples
