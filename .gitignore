@@ -5,5 +5,7 @@ data/input/
 data/manual/
 data/processed/
 data/output/
+tests/_artifacts/
+tests/.tmp_pytest/
 .DS_Store
 *.egg-info/

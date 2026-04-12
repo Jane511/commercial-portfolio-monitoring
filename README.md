@@ -33,14 +33,11 @@ Downstream use:
 
 ## Repo structure
 
-- `data/input/`: staged upstream expected loss, pricing, and capital inputs
-- `data/manual/`: manual overlays or reviewer-supplied inputs
-- `data/processed/`: working datasets created during the monitoring pipeline
-- `data/output/`: exported ECL, staging, concentration, and disclosure tables
+- `data/`: tracked folder guide plus runtime-created `input/`, `manual/`, `processed/`, and `output/` subfolders used during local runs
 - `src/`: reusable staging, lifetime PD, ECL, migration, and monitoring modules
 - `scripts/`: wrapper scripts for pipeline execution
-- `notebooks/`: reviewer-facing walkthrough notebooks
 - `docs/`: methodology and disclosure notes
+- `notebooks/`: reviewer-facing notebook index and walkthrough placeholders
 - `tests/`: validation and regression checks
 
 ## How to run
@@ -53,6 +50,12 @@ Or:
 
 ```powershell
 python scripts/run_pipeline.py --refresh-demo-inputs
+```
+
+Run validation tests:
+
+```powershell
+pytest
 ```
 
 ## Limitations / Demo-Only Note
