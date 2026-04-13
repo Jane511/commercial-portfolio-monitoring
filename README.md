@@ -1,10 +1,10 @@
-# Commercial Portfolio Monitoring & ECL Project
+# Commercial Portfolio Monitoring & Early Risk Analytics Project
 
-This repository is the post-origination monitoring and impairment reporting layer in the commercial credit-risk stack. It uses loan-level expected loss data, prior-period snapshots, and optional pricing or capital inputs to produce facility-level ECL outputs, stage summaries, transition matrices, early-warning views, and concentration reports. The project is positioned as a portfolio monitoring layer rather than a front-line model build.
+This repository is the post-origination monitoring and impairment reporting layer in the commercial credit-risk stack. It uses loan-level expected loss data, prior-period snapshots, and optional pricing or capital inputs to produce facility-level ECL outputs, stage summaries, transition matrices, early-warning views, and concentration reports. The project is positioned as a portfolio monitoring layer that is relevant to both bank-style impairment review and non-bank portfolio performance management.
 
 ## What this repo is
 
-This project demonstrates how a commercial portfolio can be monitored after origination using staging, lifetime PD, scenario-weighted ECL, migration, and concentration analytics. It is designed as a portfolio project, so the workflow is transparent, the assumptions are clearly disclosed, and the outputs are shaped for recruiter-friendly review.
+This project demonstrates how a commercial portfolio can be monitored after origination using staging, lifetime PD, scenario-weighted ECL, migration, and concentration analytics. It is designed as a portfolio project, so the workflow is transparent, the assumptions are clearly disclosed, and the outputs are shaped for recruiter-friendly review across both institutional and non-bank lending contexts.
 
 ## Where it sits in the stack
 
@@ -18,6 +18,22 @@ Downstream consumers:
 - portfolio monitoring packs and early-warning review
 - impairment and stage-movement summaries
 - employer-ready disclosure and management-reporting examples
+
+## How this is used in practice
+
+This project can be applied in:
+
+### Bank / Institutional context
+
+- Portfolio risk monitoring, staging, and impairment-style reporting
+- Early-warning and migration analysis for structured risk review
+- Concentration, watchlist, and management reporting support
+
+### Non-bank / Fintech context
+
+- Early risk monitoring and portfolio performance tracking after origination
+- Roll-rate, arrears-style, and warning-signal review for collections or servicing teams
+- Management reporting on customer cohorts, segments, and emerging risk pockets
 
 ## Key outputs
 
