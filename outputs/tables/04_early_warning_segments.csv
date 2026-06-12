@@ -1,0 +1,116 @@
+industry,vintage,size_band,loan_count,defaults,exposure,chargeoff_rate,portfolio_rate,rate_multiple,severity
+Real Estate & Rental & Leasing,2007,<=50k,1978,838,55259100.0,0.4237,0.1346,3.15,High
+Wholesale Trade,2007,<=50k,2763,1066,83956535.0,0.3858,0.1346,2.87,High
+Wholesale Trade,2008,<=50k,1590,591,49093100.0,0.3717,0.1346,2.76,High
+Finance & Insurance,2007,<=50k,1308,484,36247800.0,0.37,0.1346,2.75,High
+Wholesale Trade,2007,50k-150k,1198,432,119134050.0,0.3606,0.1346,2.68,High
+Real Estate & Rental & Leasing,2007,50k-150k,379,133,36083000.0,0.3509,0.1346,2.61,High
+Wholesale Trade,2006,50k-150k,1245,431,124140988.0,0.3462,0.1346,2.57,High
+Finance & Insurance,2007,50k-150k,258,89,24700300.0,0.345,0.1346,2.56,High
+Real Estate & Rental & Leasing,2006,50k-150k,352,120,34111700.0,0.3409,0.1346,2.53,High
+Real Estate & Rental & Leasing,2008,<=50k,959,327,26052200.0,0.341,0.1346,2.53,High
+Retail Trade,2007,<=50k,9020,3029,242645870.0,0.3358,0.1346,2.5,High
+Real Estate & Rental & Leasing,2006,<=50k,1437,481,39266565.0,0.3347,0.1346,2.49,High
+Construction,2007,<=50k,6924,2252,196729609.0,0.3252,0.1346,2.42,High
+Finance & Insurance,2008,<=50k,716,232,19998100.0,0.324,0.1346,2.41,High
+Information,2008,<=50k,676,219,16649200.0,0.324,0.1346,2.41,High
+Transportation & Warehousing,2007,<=50k,3043,987,75825098.0,0.3244,0.1346,2.41,High
+Wholesale Trade,2006,<=50k,2774,897,81457300.0,0.3234,0.1346,2.4,High
+Information,2007,<=50k,1094,352,28470030.0,0.3218,0.1346,2.39,High
+"Arts, Entertainment & Recreation",2007,<=50k,1019,324,24921300.0,0.318,0.1346,2.36,High
+Construction,2007,50k-150k,1731,543,164538720.0,0.3137,0.1346,2.33,High
+Retail Trade,2008,<=50k,5521,1711,150103125.0,0.3099,0.1346,2.3,High
+Finance & Insurance,2006,<=50k,1115,342,30874300.0,0.3067,0.1346,2.28,High
+Administrative & Waste Management Services,2007,<=50k,3502,1067,86087800.0,0.3047,0.1346,2.26,High
+Administrative & Waste Management Services,2007,50k-150k,787,238,75799975.0,0.3024,0.1346,2.25,High
+Accommodation & Food Services,2007,<=50k,4021,1219,114526930.0,0.3032,0.1346,2.25,High
+Information,2007,50k-150k,258,77,24714400.0,0.2984,0.1346,2.22,High
+Educational Services,2007,<=50k,748,223,18872600.0,0.2981,0.1346,2.22,High
+Other Services (except Public Admin),2007,50k-150k,1611,470,155839468.57,0.2917,0.1346,2.17,High
+Retail Trade,2007,50k-150k,2941,859,290616226.0,0.2921,0.1346,2.17,High
+Manufacturing,2007,<=50k,3267,940,93205500.0,0.2877,0.1346,2.14,High
+Other Services (except Public Admin),2007,<=50k,5326,1535,136891324.0,0.2882,0.1346,2.14,High
+"Professional, Scientific & Technical Services",2008,<=50k,4616,1315,123901505.0,0.2849,0.1346,2.12,High
+"Professional, Scientific & Technical Services",2007,<=50k,6547,1868,174204150.0,0.2853,0.1346,2.12,High
+Retail Trade,2006,<=50k,8793,2510,233312700.0,0.2855,0.1346,2.12,High
+Transportation & Warehousing,2006,<=50k,2723,778,67488700.0,0.2857,0.1346,2.12,High
+Wholesale Trade,2008,50k-150k,694,197,70762242.0,0.2839,0.1346,2.11,High
+Transportation & Warehousing,2008,<=50k,1757,493,43286500.0,0.2806,0.1346,2.09,High
+Transportation & Warehousing,2007,50k-150k,698,196,63916770.0,0.2808,0.1346,2.09,High
+Accommodation & Food Services,2008,<=50k,2690,751,74460604.0,0.2792,0.1346,2.07,High
+Construction,2007,350k-1m,346,95,210967006.0,0.2746,0.1346,2.04,High
+Transportation & Warehousing,2006,50k-150k,707,193,65562240.0,0.273,0.1346,2.03,High
+Construction,2006,<=50k,6919,1893,187976925.0,0.2736,0.1346,2.03,High
+Accommodation & Food Services,2007,350k-1m,1302,356,736229055.0,0.2734,0.1346,2.03,High
+"Arts, Entertainment & Recreation",2008,<=50k,734,200,19394500.0,0.2725,0.1346,2.02,High
+Other Services (except Public Admin),2008,<=50k,3482,941,90124240.0,0.2702,0.1346,2.01,High
+Retail Trade,2006,50k-150k,3302,892,326275924.0,0.2701,0.1346,2.01,High
+Construction,2006,50k-150k,1659,446,158847222.0,0.2688,0.1346,2.0,High
+Accommodation & Food Services,2007,150k-350k,2075,558,502875708.0,0.2689,0.1346,2.0,High
+Administrative & Waste Management Services,2008,<=50k,2112,562,53817400.0,0.2661,0.1346,1.98,Elevated
+Construction,2008,<=50k,4107,1087,117481700.0,0.2647,0.1346,1.97,Elevated
+Construction,2008,350k-1m,351,93,206506209.0,0.265,0.1346,1.97,Elevated
+Accommodation & Food Services,2007,1m-2m,406,107,610489208.0,0.2635,0.1346,1.96,Elevated
+Accommodation & Food Services,2006,<=50k,3818,1005,105990585.0,0.2632,0.1346,1.96,Elevated
+Wholesale Trade,2005,<=50k,2709,705,80709516.0,0.2602,0.1346,1.93,Elevated
+Information,2006,<=50k,1109,288,25813100.0,0.2597,0.1346,1.93,Elevated
+Retail Trade,2007,150k-350k,1726,446,418583303.0,0.2584,0.1346,1.92,Elevated
+"Professional, Scientific & Technical Services",2007,50k-150k,1506,388,144838514.0,0.2576,0.1346,1.91,Elevated
+Other Services (except Public Admin),2007,350k-1m,696,178,396343331.0,0.2557,0.1346,1.9,Elevated
+Manufacturing,2007,50k-150k,1403,357,138013186.0,0.2545,0.1346,1.89,Elevated
+Accommodation & Food Services,2006,350k-1m,1191,303,678152086.0,0.2544,0.1346,1.89,Elevated
+Manufacturing,2008,<=50k,2058,521,58211625.0,0.2532,0.1346,1.88,Elevated
+Finance & Insurance,2005,<=50k,909,230,25859100.0,0.253,0.1346,1.88,Elevated
+Manufacturing,2007,1m-2m,276,70,426841692.0,0.2536,0.1346,1.88,Elevated
+Information,2005,<=50k,1158,292,22788800.0,0.2522,0.1346,1.87,Elevated
+"Agriculture, Forestry, Fishing & Hunting",2002,350k-1m,203,51,138114423.0,0.2512,0.1346,1.87,Elevated
+Administrative & Waste Management Services,2006,<=50k,3415,859,80906300.0,0.2515,0.1346,1.87,Elevated
+Other Services (except Public Admin),2006,<=50k,5217,1304,131711517.0,0.25,0.1346,1.86,Elevated
+Accommodation & Food Services,2007,50k-150k,2032,509,213004732.0,0.2505,0.1346,1.86,Elevated
+Educational Services,2008,<=50k,520,129,12168158.0,0.2481,0.1346,1.84,Elevated
+Accommodation & Food Services,2006,150k-350k,2095,520,509442681.0,0.2482,0.1346,1.84,Elevated
+Retail Trade,2006,1m-2m,485,120,698038050.0,0.2474,0.1346,1.84,Elevated
+Retail Trade,2007,350k-1m,1432,350,870375899.0,0.2444,0.1346,1.82,Elevated
+Real Estate & Rental & Leasing,2008,50k-150k,220,54,21835750.0,0.2455,0.1346,1.82,Elevated
+Accommodation & Food Services,2008,1m-2m,442,108,674989972.0,0.2443,0.1346,1.82,Elevated
+Accommodation & Food Services,2008,350k-1m,1155,281,651553908.0,0.2433,0.1346,1.81,Elevated
+Accommodation & Food Services,2008,150k-350k,1777,433,441695965.0,0.2437,0.1346,1.81,Elevated
+"Arts, Entertainment & Recreation",2007,50k-150k,355,86,36536421.0,0.2423,0.1346,1.8,Elevated
+Administrative & Waste Management Services,2006,50k-150k,862,207,83956505.0,0.2401,0.1346,1.78,Elevated
+Manufacturing,2006,<=50k,3090,731,88780793.0,0.2366,0.1346,1.76,Elevated
+"Arts, Entertainment & Recreation",2007,150k-350k,284,67,66807004.0,0.2359,0.1346,1.75,Elevated
+"Arts, Entertainment & Recreation",2006,<=50k,976,229,23333180.0,0.2346,0.1346,1.74,Elevated
+Administrative & Waste Management Services,2007,150k-350k,357,83,86023821.0,0.2325,0.1346,1.73,Elevated
+Other Services (except Public Admin),2006,50k-150k,1673,389,164029089.0,0.2325,0.1346,1.73,Elevated
+Finance & Insurance,2005,50k-150k,272,63,27234530.0,0.2316,0.1346,1.72,Elevated
+Real Estate & Rental & Leasing,2005,<=50k,941,215,25388500.0,0.2285,0.1346,1.7,Elevated
+Administrative & Waste Management Services,2008,50k-150k,494,113,49175173.0,0.2287,0.1346,1.7,Elevated
+"Professional, Scientific & Technical Services",2006,50k-150k,1501,339,145744879.0,0.2258,0.1346,1.68,Elevated
+Information,2006,50k-150k,241,54,23687870.0,0.2241,0.1346,1.67,Elevated
+Other Services (except Public Admin),2007,150k-350k,999,224,241813399.0,0.2242,0.1346,1.67,Elevated
+Retail Trade,2007,1m-2m,475,106,684060754.0,0.2232,0.1346,1.66,Elevated
+Construction,2006,350k-1m,367,82,216887718.0,0.2234,0.1346,1.66,Elevated
+Construction,2008,50k-150k,1097,244,108236450.0,0.2224,0.1346,1.65,Elevated
+"Professional, Scientific & Technical Services",2006,<=50k,6012,1332,154619100.0,0.2216,0.1346,1.65,Elevated
+Retail Trade,2005,<=50k,8368,1859,219415981.0,0.2222,0.1346,1.65,Elevated
+Wholesale Trade,2005,50k-150k,1358,300,139548117.0,0.2209,0.1346,1.64,Elevated
+Retail Trade,2008,50k-150k,1909,422,192146263.0,0.2211,0.1346,1.64,Elevated
+Accommodation & Food Services,2006,50k-150k,2174,480,232619918.0,0.2208,0.1346,1.64,Elevated
+"Arts, Entertainment & Recreation",2005,150k-350k,208,46,49411265.0,0.2212,0.1346,1.64,Elevated
+Educational Services,2006,<=50k,661,143,16325900.0,0.2163,0.1346,1.61,Elevated
+"Arts, Entertainment & Recreation",2006,50k-150k,399,86,40111105.0,0.2155,0.1346,1.6,Elevated
+Retail Trade,2008,1m-2m,402,86,596051200.0,0.2139,0.1346,1.59,Elevated
+"Arts, Entertainment & Recreation",2006,150k-350k,205,44,48117105.0,0.2146,0.1346,1.59,Elevated
+Manufacturing,2007,150k-350k,750,160,188736559.0,0.2133,0.1346,1.58,Elevated
+Retail Trade,2008,150k-350k,1438,306,345387601.0,0.2128,0.1346,1.58,Elevated
+Transportation & Warehousing,2005,<=50k,1933,404,48798207.0,0.209,0.1346,1.55,Elevated
+Accommodation & Food Services,2008,50k-150k,1527,318,160433607.52,0.2083,0.1346,1.55,Elevated
+Construction,2005,<=50k,5367,1103,149014654.0,0.2055,0.1346,1.53,Elevated
+Manufacturing,2008,1m-2m,252,52,386208970.0,0.2063,0.1346,1.53,Elevated
+Retail Trade,2006,350k-1m,1373,280,829030812.0,0.2039,0.1346,1.52,Elevated
+Manufacturing,2006,50k-150k,1464,300,147214234.0,0.2049,0.1346,1.52,Elevated
+Real Estate & Rental & Leasing,2005,50k-150k,410,84,40329750.0,0.2049,0.1346,1.52,Elevated
+Retail Trade,2008,350k-1m,1140,232,684506591.0,0.2035,0.1346,1.51,Elevated
+Other Services (except Public Admin),2008,150k-350k,880,179,214951119.0,0.2034,0.1346,1.51,Elevated
+Wholesale Trade,2004,<=50k,2486,504,80431000.0,0.2027,0.1346,1.51,Elevated
+Accommodation & Food Services,2006,1m-2m,442,89,670087350.0,0.2014,0.1346,1.5,Elevated

@@ -1,0 +1,76 @@
+# config.yaml — Commercial Portfolio Monitor (SBA real data)
+#
+# All tunable thresholds and business parameters live here. Analytical modules
+# load this file at runtime via src/config.py:load_config().
+#
+# To use a custom config:
+#   python scripts/run_pipeline.py --config path/to/my_config.yaml
+#
+# Sections:
+#   universe       — which loans count as the monitored portfolio
+#   size_bands     — gross-approval size buckets ($) for segmentation
+#   concentration  — top-N reporting depth and HHI classification bounds
+#   vintage        — months-on-book grid for cumulative charge-off cohort curves
+#   early_warning  — rules that flag elevated-risk segments vs the portfolio average
+
+# ---------------------------------------------------------------------------
+# UNIVERSE — defining the monitored portfolio
+# ---------------------------------------------------------------------------
+# SBA 7(a) is outcome-level loan data (one row per loan, final status), not a
+# monthly grade panel. We monitor *disbursed* loans with a known outcome.
+universe:
+  # Statuses excluded entirely — these loans never funded, so they carry no
+  # real exposure and would distort both concentration and charge-off rates.
+  exclude_statuses: ["CANCLD", "COMMIT"]
+
+  # Statuses treated as DEFAULT (charge-off). Per the build spec the default
+  # definition is LoanStatus == CHGOFF. Kept as a list so it is easy to extend.
+  default_statuses: ["CHGOFF"]
+
+  # Approval fiscal years considered "fully seasoned" — old enough that loan
+  # outcomes are essentially final. Vintages after this are still shown but
+  # clearly labelled as not fully seasoned (recent cohorts under-report
+  # ultimate charge-offs because some loans have not yet failed).
+  fully_seasoned_max_fy: 2015
+
+# ---------------------------------------------------------------------------
+# SIZE BANDS — gross-approval ($) buckets for size-based segmentation
+# ---------------------------------------------------------------------------
+# Edges are upper bounds in USD; the final band is open-ended. Labels are used
+# verbatim in output tables and charts.
+size_bands:
+  edges:   [50000, 150000, 350000, 1000000, 2000000]
+  labels:  ["<=50k", "50k-150k", "150k-350k", "350k-1m", "1m-2m", ">2m"]
+
+# ---------------------------------------------------------------------------
+# CONCENTRATION — reporting depth and HHI classification
+# ---------------------------------------------------------------------------
+concentration:
+  top_n: 10              # Number of rows to show in each top-N concentration table.
+
+  # HHI = sum of squared segment shares. 0 = perfectly diversified,
+  # 1.0 = everything in one segment. Thresholds below classify the score.
+  # (For reference, US DOJ merger guidance calls a market >0.25 "highly
+  #  concentrated"; loan portfolios are typically far more diversified, so
+  #  these bounds are tuned for a many-segment lending book.)
+  hhi_moderate_threshold: 0.10   # HHI >= 0.10 -> "Moderate" concentration.
+  hhi_high_threshold: 0.18       # HHI >= 0.18 -> "High" concentration.
+
+# ---------------------------------------------------------------------------
+# VINTAGE — cumulative charge-off cohort curves
+# ---------------------------------------------------------------------------
+vintage:
+  # Months-since-approval checkpoints at which the cumulative charge-off rate
+  # is measured for each approval-year cohort (ChargeOffDate - ApprovalDate).
+  mob_grid: [6, 12, 18, 24, 36, 48, 60, 72, 84, 96, 120]
+
+# ---------------------------------------------------------------------------
+# EARLY WARNING — elevated-risk segment flags
+# ---------------------------------------------------------------------------
+# A segment (industry x vintage x size band) is flagged when its charge-off
+# rate is materially above the portfolio average AND it is large enough to be
+# statistically meaningful (avoids flagging a 3-loan segment with one default).
+early_warning:
+  elevated_multiple: 1.5    # Flag if segment charge-off rate >= 1.5x portfolio avg.
+  high_multiple: 2.0        # "High" severity if >= 2.0x portfolio average.
+  min_segment_loans: 200    # Minimum loans in a segment to be eligible for a flag.

@@ -1,20 +1,57 @@
-# Data Dictionary
+# Data dictionary
 
-## Core staged inputs
+## Source fields (SBA 7(a) FOIA CSV)
 
-- `data/input/loan_level_el.csv`: facility-level expected-loss style dataset used as the core monitoring input.
-- `data/input/exposure_level_rwa.csv`: optional capital-style enrichment used for monitoring context.
-- `data/input/facility_raroc.csv`: optional pricing-style enrichment used for reviewer-facing comparisons when available.
-- `data/input/prior_period_snapshot.csv`: prior-period facility snapshot used for staging and migration analysis.
+The raw files carry 43 columns; this project reads the subset below
+(`src/config.py:RAW_COLUMNS`). Field names are the SBA originals.
 
-## Main outputs
+| Raw field | Meaning | Used for |
+|---|---|---|
+| `program` | SBA program (here always ` 7A`) | provenance |
+| `borrname` | Borrower name | (not analysed; identity only) |
+| `borrstate` | Borrower state | state concentration |
+| `bankname` | Originating lender | lender concentration |
+| `grossapproval` | Gross loan amount approved ($) | exposure, size bands, $ rates |
+| `sbaguaranteedapproval` | SBA-guaranteed portion ($) | reference |
+| `approvaldate` | Approval date (MM/DD/YYYY) | vintage, loan age |
+| `approvalfy` | Approval fiscal year | vintage cohort |
+| `terminmonths` | Loan term (months) | reference |
+| `naicscode` | 6-digit industry code | → 2-digit NAICS sector |
+| `naicsdescription` | Industry description | reference |
+| `projectstate` | Project location state | reference |
+| `businesstype` | Corporation / Individual / Partnership | reference |
+| `jobssupported` | Jobs reported supported | reference |
+| `loanstatus` | Final loan status code | default flag, stage proxy |
+| `paidinfulldate` | Paid-in-full date | as-of inference, seasoning |
+| `chargeoffdate` | Charge-off date | loan age at charge-off, cohort curves |
+| `grosschargeoffamount` | Amount charged off ($) | $ charge-off rate |
 
-- `data/output/facility_ecl.csv`: facility-level ECL dataset with staging, scenario, and alert fields.
-- `data/output/ecl_summary_by_stage.csv`: ECL summary table by AASB 9 stage.
-- `data/output/ecl_summary_by_segment.csv`: ECL summary table by product segment.
-- `data/output/concentration_report.csv`: concentration metrics and limit-style flags across the monitored portfolio.
-- `data/output/transition_matrix_grade.csv`: prior-to-current migration matrix by internal risk grade.
-- `data/output/transition_matrix_stage.csv`: prior-to-current migration matrix by AASB 9 stage.
-- `data/output/early_warning_summary.csv`: aggregated early-warning indicator summary.
-- `data/output/aps330_stage_movement.csv`: disclosure-style stage movement summary.
-- `data/output/aps330_credit_quality.csv`: disclosure-style credit-quality summary.
+## LoanStatus codes (as they appear, incl. embedded spaces)
+
+| Code | Plain English | Treatment |
+|---|---|---|
+| `P I F` | Paid in full | Performing |
+| `CURR` | Current | Performing |
+| `CHGOFF` | **Charged off** | **Default** |
+| `CANCLD` | Cancelled (never funded) | **Excluded** from universe |
+| `COMMIT` | Committed (never funded) | **Excluded** from universe |
+| `PURCH(NOT C/O)` | Guaranty purchased, not charged off | Performing (non-default) |
+| `LIQUID` | In liquidation | Non-default (no charge-off booked) |
+| `CLSLN` | Closed loan | Non-default |
+| `DELINQ` / `PSTDUE` / `DEFERD` | Delinquent / past due / deferred | Non-default |
+
+> Only `CHGOFF` counts as default per the build spec. `CANCLD`/`COMMIT` never
+> funded and are dropped so they don't distort exposure or rates.
+
+## Derived fields (base table — `src/base_table.py`)
+
+| Field | Definition |
+|---|---|
+| `vintage` | `approvalfy` — the approval-year cohort |
+| `is_default` | `loanstatus` in `universe.default_statuses` (i.e. `CHGOFF`) |
+| `size_band` | `grossapproval` bucketed by `config.yaml:size_bands` |
+| `naics_sector_code` | First 2 digits of `naicscode` |
+| `naics_sector` | 2-digit code mapped to a NAICS sector name |
+| `months_to_chargeoff` | `(chargeoffdate − approvaldate)` in months, defaults only |
+| `fully_seasoned` | `vintage <= universe.fully_seasoned_max_fy` |
+| `status_label` | Plain-English label for `loanstatus` |

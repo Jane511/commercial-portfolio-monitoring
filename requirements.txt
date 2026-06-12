@@ -1,6 +1,16 @@
-numpy>=1.24
+# Core analytics
 pandas>=2.0
+numpy>=1.24
+PyYAML>=6.0
+
+# Charts
 matplotlib>=3.7
-seaborn>=0.12
-pytest>=7.0
+
+# Notebooks (00–05) + the build/execute helper
 jupyter>=1.0
+nbformat>=5.9
+nbconvert>=7.0
+ipykernel>=6.0
+
+# Tests
+pytest>=7.0

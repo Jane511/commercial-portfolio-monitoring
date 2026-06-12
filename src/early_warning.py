@@ -1,78 +1,62 @@
+"""Early-warning segmentation.
+
+Flags high-risk segments (industry x vintage x size band) whose charge-off rate
+is materially above the portfolio average. Only segments with enough loans to
+be statistically meaningful are eligible, so a tiny segment with one unlucky
+default is not flagged. Severity tiers off the multiple of the portfolio rate.
+"""
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
 
-from .config import EARLY_WARNING_THRESHOLDS
+from .config import load_config
+from .logger import get_logger
+
+_log = get_logger(__name__)
 
 
-def flag_early_warnings(
-    df: pd.DataFrame,
-    thresholds: dict | None = None,
-) -> pd.DataFrame:
-    """Add early warning signal flags to the facility dataset.
+def flag_high_risk_segments(df: pd.DataFrame, config: dict | None = None) -> pd.DataFrame:
+    """Return elevated-risk (industry x vintage x size) segments, worst-first.
 
-    Signals detected:
-    - ew_dscr_weak: DSCR < 1.25 (approaching covenant breach)
-    - ew_dscr_critical: DSCR < 1.00 (cash flow insufficient for debt service)
-    - ew_arrears_trending: Arrears > 0 but < 30 DPD (not yet Stage 2)
-    - ew_grade_on_watch: Watchlist flag set but not yet Stage 2/3
-    - ew_pd_deterioration: PD increased >= 50% from origination
+    Each row: the segment keys, loan count, charge-off rate, the portfolio
+    average for reference, the multiple, and a severity flag.
     """
-    t = thresholds or EARLY_WARNING_THRESHOLDS
-    out = df.copy()
+    cfg = config or load_config()
+    ew = cfg["early_warning"]
+    elevated = ew["elevated_multiple"]
+    high = ew["high_multiple"]
+    min_loans = ew["min_segment_loans"]
 
-    out["ew_dscr_weak"] = False
-    if "dscr" in out.columns:
-        out["ew_dscr_weak"] = out["dscr"] < t["dscr_weak"]
-        out["ew_dscr_critical"] = out["dscr"] < t["dscr_critical"]
-    else:
-        out["ew_dscr_critical"] = False
+    # Use only fully-seasoned vintages so rates reflect (near-)final outcomes.
+    seasoned = df[df["fully_seasoned"]]
+    portfolio_rate = float(seasoned["is_default"].mean())
+    if portfolio_rate <= 0:
+        _log.warning("Portfolio charge-off rate is 0; no segments can be flagged")
+        return pd.DataFrame()
 
-    out["ew_arrears_trending"] = (
-        (out["arrears_days"] > 0) & (out["arrears_days"] < t.get("arrears_trending_days", 30))
+    grouped = seasoned.groupby(
+        ["naics_sector", "vintage", "size_band"], observed=True
+    ).agg(
+        loan_count=("is_default", "size"),
+        defaults=("is_default", "sum"),
+        exposure=("grossapproval", "sum"),
+    ).reset_index()
+
+    grouped = grouped[grouped["loan_count"] >= min_loans].copy()
+    grouped["chargeoff_rate"] = (grouped["defaults"] / grouped["loan_count"]).round(4)
+    grouped["portfolio_rate"] = round(portfolio_rate, 4)
+    grouped["rate_multiple"] = (grouped["chargeoff_rate"] / portfolio_rate).round(2)
+
+    flagged = grouped[grouped["rate_multiple"] >= elevated].copy()
+    flagged["severity"] = flagged["rate_multiple"].apply(
+        lambda m: "High" if m >= high else "Elevated"
     )
+    flagged = flagged.rename(columns={"naics_sector": "industry"})
+    flagged = flagged.sort_values("rate_multiple", ascending=False).reset_index(drop=True)
 
-    out["ew_grade_on_watch"] = (
-        out.get("watchlist_flag", pd.Series(0, index=out.index)).astype(bool)
-        & (out.get("aasb9_stage", pd.Series(1, index=out.index)) == 1)
+    _log.info(
+        "Early warning: %d segments flagged (portfolio rate %.2f%%, >= %.1fx threshold, "
+        "min %d loans)",
+        len(flagged), portfolio_rate * 100, elevated, min_loans,
     )
-
-    if "origination_pd" in out.columns:
-        pd_increase = np.where(
-            out["origination_pd"] > 0,
-            (out["pd_final"] - out["origination_pd"]) / out["origination_pd"],
-            0.0,
-        )
-        out["ew_pd_deterioration"] = pd_increase >= t["pd_increase_pct"]
-    else:
-        out["ew_pd_deterioration"] = False
-
-    ew_cols = [c for c in out.columns if c.startswith("ew_")]
-    out["ew_signal_count"] = out[ew_cols].sum(axis=1).astype(int)
-
-    return out
-
-
-def summarise_early_warnings(df: pd.DataFrame) -> pd.DataFrame:
-    """Count of each early warning signal type."""
-    ew_cols = [c for c in df.columns if c.startswith("ew_") and c != "ew_signal_count"]
-    records: list[dict] = []
-    for col in ew_cols:
-        flagged = df[df[col] == True]
-        records.append({
-            "signal": col.replace("ew_", ""),
-            "facility_count": int(flagged[col].sum()),
-            "total_ead": round(float(flagged["ead"].sum()), 2),
-            "avg_pd": round(float(flagged["pd_final"].mean()), 4) if len(flagged) > 0 else 0.0,
-        })
-
-    total_any = df[df["ew_signal_count"] > 0]
-    records.append({
-        "signal": "any_signal",
-        "facility_count": len(total_any),
-        "total_ead": round(float(total_any["ead"].sum()), 2),
-        "avg_pd": round(float(total_any["pd_final"].mean()), 4) if len(total_any) > 0 else 0.0,
-    })
-
-    return pd.DataFrame.from_records(records)
+    return flagged

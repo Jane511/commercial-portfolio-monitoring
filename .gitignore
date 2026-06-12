@@ -1,11 +1,26 @@
+# --- Editor / local tooling ---
+.claude/
+
+# --- Python ---
 __pycache__/
 *.pyc
+*.egg-info/
 .ipynb_checkpoints/
+.DS_Store
+
+# --- Raw SBA data (large public FOIA CSVs + data dictionary) ---
+# Download these yourself from data.sba.gov — see README "Data sources & provenance".
+# Only small output snapshots, charts, and the report are committed (in outputs/).
 data/input/
 data/manual/
 data/processed/
-data/output/
+
+# --- Runtime logs ---
+logs/
+
+# --- Test scratch ---
 tests/_artifacts/
 tests/.tmp_pytest/
-.DS_Store
-*.egg-info/
+
+# NOTE: outputs/ (tables, charts, report.md) is intentionally NOT ignored —
+# those committed snapshots are what makes the repo self-demonstrating.

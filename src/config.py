@@ -1,190 +1,122 @@
+"""Project configuration: paths, runtime config loading, and SBA constants.
+
+Analytical modules import paths and constants from here and call
+``load_config()`` for tunable business parameters (read from ``config.yaml``).
+"""
 from __future__ import annotations
 
+import functools
 from pathlib import Path
+from typing import Any
 
+import yaml
 
+# --------------------------------------------------------------------------- #
+# Paths                                                                        #
+# --------------------------------------------------------------------------- #
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
-INPUT_DIR = DATA_DIR / "input"
-MANUAL_DIR = DATA_DIR / "manual"
-PROCESSED_DIR = DATA_DIR / "processed"
-OUTPUT_DIR = DATA_DIR / "output"
+INPUT_DIR = DATA_DIR / "input"          # raw SBA CSVs (gitignored)
+OUTPUT_DIR = ROOT / "outputs"           # committed result tables + charts
+TABLES_DIR = OUTPUT_DIR / "tables"
+CHARTS_DIR = OUTPUT_DIR / "charts"
 DOCS_DIR = ROOT / "docs"
 NOTEBOOKS_DIR = ROOT / "notebooks"
 
-DEFAULT_INPUT_FILES = {
-    "loan_level_el": INPUT_DIR / "loan_level_el.csv",
-    "exposure_level_rwa": INPUT_DIR / "exposure_level_rwa.csv",
-    "facility_raroc": INPUT_DIR / "facility_raroc.csv",
-    "prior_period": INPUT_DIR / "prior_period_snapshot.csv",
-}
+DEFAULT_CONFIG_PATH = ROOT / "config.yaml"
 
-DEFAULT_OUTPUT_FILES = {
-    "facility_ecl": OUTPUT_DIR / "facility_ecl.csv",
-    "ecl_by_stage": OUTPUT_DIR / "ecl_summary_by_stage.csv",
-    "ecl_by_segment": OUTPUT_DIR / "ecl_summary_by_segment.csv",
-    "concentration": OUTPUT_DIR / "concentration_report.csv",
-    "transition_grade": OUTPUT_DIR / "transition_matrix_grade.csv",
-    "transition_stage": OUTPUT_DIR / "transition_matrix_stage.csv",
-    "early_warning": OUTPUT_DIR / "early_warning_summary.csv",
-    "aps330_stage_movement": OUTPUT_DIR / "aps330_stage_movement.csv",
-    "aps330_credit_quality": OUTPUT_DIR / "aps330_credit_quality.csv",
-}
+# The two real SBA 7(a) FOIA loan-level extracts shipped with this project.
+# Any CSV matching ``foia-7a-*.csv`` in INPUT_DIR is picked up automatically by
+# the loader, so adding the 504 file later requires no code change here.
+DEFAULT_INPUT_GLOB = "foia-7a-*.csv"
 
-SIBLING_INPUT_CANDIDATES = {
-    "loan_level_el": (
-        ROOT.parent / "5. Expected Loss Engine and Portfolio Stress Testing" / "data" / "output" / "loan_level_el.csv",
-    ),
-    "exposure_level_rwa": (
-        ROOT.parent / "4. RWA & Capital Module" / "output" / "exposure_level_rwa.csv",
-    ),
-    "facility_raroc": (
-        ROOT.parent / "6. RAROC Pricing and Return Hurdle" / "data" / "output" / "facility_raroc.csv",
-    ),
-}
-
-AS_OF_DATE = "2026-04-10"
-PRIOR_PERIOD_DATE = "2025-10-10"
-RANDOM_SEED = 42
-N_FACILITIES = 180
-
-# --------------------------------------------------------------------------- #
-# AASB 9 Staging — Significant Increase in Credit Risk (SICR) thresholds      #
-# --------------------------------------------------------------------------- #
-SICR_THRESHOLDS = {
-    "dpd_stage2": 30,               # days past due for Stage 2
-    "dpd_stage3": 90,               # days past due for Stage 3
-    "pd_increase_relative": 2.0,    # 2x origination PD → SICR
-    "pd_increase_absolute": 0.005,  # absolute PD increase floor (50bps)
-    "grade_downgrade_notches": 2,   # 2+ notch downgrade → SICR
+# Result tables written by the pipeline (under outputs/tables/).
+OUTPUT_TABLES = {
+    "data_quality": TABLES_DIR / "00_data_quality_summary.csv",
+    "base_table_sample": TABLES_DIR / "01_base_table_sample.csv",
+    "concentration_industry": TABLES_DIR / "02_concentration_industry.csv",
+    "concentration_state": TABLES_DIR / "02_concentration_state.csv",
+    "concentration_lender": TABLES_DIR / "02_concentration_lender.csv",
+    "concentration_hhi": TABLES_DIR / "02_concentration_hhi_summary.csv",
+    "chargeoff_by_industry": TABLES_DIR / "03_chargeoff_by_industry.csv",
+    "chargeoff_by_size": TABLES_DIR / "03_chargeoff_by_size_band.csv",
+    "chargeoff_by_vintage": TABLES_DIR / "03_chargeoff_by_vintage.csv",
+    "vintage_curves": TABLES_DIR / "03_vintage_cohort_curves.csv",
+    "loan_age_transitions": TABLES_DIR / "04_loan_age_transitions.csv",
+    "early_warning": TABLES_DIR / "04_early_warning_segments.csv",
+    "stage_proxy": TABLES_DIR / "05_stage_proxy_summary.csv",
+    "aps330_credit_quality": TABLES_DIR / "05_aps330_style_credit_quality.csv",
 }
 
 # --------------------------------------------------------------------------- #
-# Macro Scenarios — RBA-aligned forward-looking overlays                       #
+# SBA data constants                                                          #
 # --------------------------------------------------------------------------- #
-MACRO_SCENARIOS = {
-    "base": {
-        "gdp_growth": 0.025,
-        "unemployment": 0.042,
-        "house_price_change": 0.03,
-        "pd_scalar": 1.00,
-        "lgd_scalar": 1.00,
-        "description": "Consensus baseline — steady growth, stable employment",
-    },
-    "downside": {
-        "gdp_growth": 0.005,
-        "unemployment": 0.058,
-        "house_price_change": -0.08,
-        "pd_scalar": 1.35,
-        "lgd_scalar": 1.12,
-        "description": "Mild recession — GDP stalls, unemployment rises, property softens",
-    },
-    "severe_downside": {
-        "gdp_growth": -0.020,
-        "unemployment": 0.080,
-        "house_price_change": -0.20,
-        "pd_scalar": 2.00,
-        "lgd_scalar": 1.30,
-        "description": "Deep recession — GDP contraction, property crash, credit stress",
-    },
+# Raw LoanStatus codes as they appear in the FOIA CSVs (note "P I F" has
+# embedded spaces). Mapped to a small set of plain-English outcome classes.
+LOAN_STATUS_LABELS = {
+    "P I F": "Paid in full",
+    "CHGOFF": "Charged off",
+    "CURR": "Current",
+    "PIF": "Paid in full",            # defensive: some extracts drop the spaces
+    "CANCLD": "Cancelled (never funded)",
+    "COMMIT": "Committed (never funded)",
+    "EXEMPT": "Exempt",
+    "PURCH(NOT C/O)": "Guaranty purchased (not charged off)",
+    "LIQUID": "In liquidation",
+    "CLSLN": "Closed loan",
+    "DELINQ": "Delinquent",
+    "PSTDUE": "Past due",
+    "DEFERD": "Deferred",
 }
 
-SCENARIO_WEIGHTS = {
-    "base": 0.50,
-    "downside": 0.35,
-    "severe_downside": 0.15,
+# NAICS 2-digit sector prefix -> sector name (2017 NAICS structure). Several
+# sectors span a range of 2-digit codes, hence the repeated names.
+NAICS_SECTOR_NAMES = {
+    "11": "Agriculture, Forestry, Fishing & Hunting",
+    "21": "Mining, Quarrying, Oil & Gas Extraction",
+    "22": "Utilities",
+    "23": "Construction",
+    "31": "Manufacturing",
+    "32": "Manufacturing",
+    "33": "Manufacturing",
+    "42": "Wholesale Trade",
+    "44": "Retail Trade",
+    "45": "Retail Trade",
+    "48": "Transportation & Warehousing",
+    "49": "Transportation & Warehousing",
+    "51": "Information",
+    "52": "Finance & Insurance",
+    "53": "Real Estate & Rental & Leasing",
+    "54": "Professional, Scientific & Technical Services",
+    "55": "Management of Companies & Enterprises",
+    "56": "Administrative & Waste Management Services",
+    "61": "Educational Services",
+    "62": "Health Care & Social Assistance",
+    "71": "Arts, Entertainment & Recreation",
+    "72": "Accommodation & Food Services",
+    "81": "Other Services (except Public Admin)",
+    "92": "Public Administration",
 }
 
-# --------------------------------------------------------------------------- #
-# Lifetime PD — term structure parameters                                      #
-# --------------------------------------------------------------------------- #
-LIFETIME_PD_MAX_YEARS = 5
+# Columns read from the raw CSVs. Keeping this explicit keeps memory down on
+# the ~1.2M-row load and documents exactly what the project depends on.
+RAW_COLUMNS = [
+    "program", "borrname", "borrstate", "bankname",
+    "grossapproval", "sbaguaranteedapproval",
+    "approvaldate", "approvalfy", "terminmonths",
+    "naicscode", "naicsdescription", "projectstate",
+    "businesstype", "jobssupported",
+    "loanstatus", "paidinfulldate", "chargeoffdate", "grosschargeoffamount",
+]
 
-# Shape factors control how the marginal PD curve behaves over time.
-# Higher-quality grades have flatter curves; lower grades are front-loaded.
-GRADE_SHAPE_FACTORS = {
-    "RG1": 0.85,
-    "RG2": 0.90,
-    "RG3": 1.00,
-    "RG4": 1.10,
-    "RG5": 1.25,
-}
 
-# --------------------------------------------------------------------------- #
-# Concentration Limits — ICAAP / CPS 220 alignment                            #
-# --------------------------------------------------------------------------- #
-CONCENTRATION_LIMITS = {
-    "single_name_pct": 0.10,         # max 10% of portfolio EAD per borrower
-    "sector_pct": 0.25,               # max 25% per industry sector
-    "region_pct": 0.35,               # max 35% per geographic region
-    "hhi_moderate_threshold": 0.10,    # HHI > 0.10 = moderate concentration
-    "hhi_high_threshold": 0.18,        # HHI > 0.18 = high concentration
-}
+@functools.lru_cache(maxsize=4)
+def load_config(config_path: str | None = None) -> dict[str, Any]:
+    """Load and return project configuration from ``config.yaml``.
 
-# --------------------------------------------------------------------------- #
-# Early Warning Signal thresholds                                              #
-# --------------------------------------------------------------------------- #
-EARLY_WARNING_THRESHOLDS = {
-    "dscr_weak": 1.25,
-    "dscr_critical": 1.00,
-    "arrears_trending_days": 15,
-    "pd_increase_pct": 0.50,          # 50% increase in PD from origination
-}
-
-# --------------------------------------------------------------------------- #
-# Shared settings (reused from Module 5 for demo data generation)              #
-# --------------------------------------------------------------------------- #
-PRODUCT_SETTINGS = {
-    "SME Cash Flow Term Loan": {
-        "loan_type": "term",
-        "limit_range": (250_000, 2_500_000),
-        "drawn_range": (0.72, 1.00),
-        "term_options": (24, 36, 48),
-        "interest_base": 0.082,
-        "risk_factor": 0.18,
-        "security_types": ("General Security Agreement", "Receivables Security", "Unsecured"),
-        "security_weights": (0.55, 0.20, 0.25),
-    },
-    "Property Backed Loan": {
-        "loan_type": "term",
-        "limit_range": (500_000, 6_000_000),
-        "drawn_range": (0.80, 1.00),
-        "term_options": (36, 48, 60),
-        "interest_base": 0.071,
-        "risk_factor": 0.12,
-        "security_types": ("Commercial Property", "Residential Investment Property"),
-        "security_weights": (0.65, 0.35),
-    },
-    "Overdraft / Revolving Working Capital": {
-        "loan_type": "revolving",
-        "limit_range": (100_000, 1_500_000),
-        "drawn_range": (0.35, 0.80),
-        "term_options": (12, 12, 24),
-        "interest_base": 0.094,
-        "risk_factor": 0.24,
-        "security_types": ("General Security Agreement", "Unsecured"),
-        "security_weights": (0.75, 0.25),
-    },
-}
-
-INDUSTRY_SETTINGS = {
-    "Agriculture, Forestry and Fishing": {"risk_factor": 0.20},
-    "Manufacturing": {"risk_factor": 0.22},
-    "Retail Trade": {"risk_factor": 0.18},
-    "Wholesale Trade": {"risk_factor": 0.15},
-    "Accommodation and Food Services": {"risk_factor": 0.24},
-    "Construction": {"risk_factor": 0.21},
-    "Health Care and Social Assistance": {"risk_factor": 0.10},
-    "Professional, Scientific and Technical Services": {"risk_factor": 0.11},
-    "Transport, Postal and Warehousing": {"risk_factor": 0.17},
-}
-
-REGION_FACTORS = {
-    "NSW": 0.00, "VIC": 0.02, "QLD": 0.03, "WA": -0.01, "SA": 0.01,
-}
-
-RISK_GRADE_PD_LOOKUP = {
-    "RG1": 0.012, "RG2": 0.022, "RG3": 0.041, "RG4": 0.079, "RG5": 0.150,
-}
-
-RISK_GRADE_ORDER = ["RG1", "RG2", "RG3", "RG4", "RG5"]
+    Results are cached per path; call ``load_config.cache_clear()`` to reload
+    after editing the file.
+    """
+    path = Path(config_path) if config_path else DEFAULT_CONFIG_PATH
+    with open(path, encoding="utf-8") as fh:
+        return yaml.safe_load(fh)

@@ -1,84 +1,83 @@
+"""Portfolio concentration analytics on real SBA loans.
+
+Exposure and loan-count concentration by industry (NAICS sector), borrower
+state, and lender, each with a top-N share and the Herfindahl-Hirschman Index
+(HHI = sum of squared segment shares; higher = more concentrated).
+"""
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
 
-from .config import CONCENTRATION_LIMITS
+from .config import load_config
+from .logger import get_logger
+from .utils import herfindahl_index, top_n_share
+
+_log = get_logger(__name__)
+
+# Maps a friendly dimension name to the base-table column holding it.
+DIMENSIONS = {
+    "industry": "naics_sector",
+    "state": "borrstate",
+    "lender": "bankname",
+}
+
+_EXPOSURE = "grossapproval"
 
 
-def calculate_hhi(df: pd.DataFrame, group_field: str) -> float:
-    """Herfindahl-Hirschman Index by the specified grouping field.
+def concentration_by(df: pd.DataFrame, dimension: str, top_n: int | None = None) -> pd.DataFrame:
+    """Top-N segments for *dimension* by exposure, with shares and charge-off rate.
 
-    HHI = sum(share_i^2) where share_i = EAD_i / total_EAD.
-    HHI ranges from ~0 (diversified) to 1.0 (single concentration).
+    Returns one row per segment (largest first) with: loan count, total gross
+    approval (exposure), exposure share, count share, and the segment's
+    charge-off rate (count and $).
     """
-    total_ead = float(df["ead"].sum())
-    if total_ead <= 0:
-        return 0.0
-    shares = df.groupby(group_field)["ead"].sum() / total_ead
-    return round(float((shares ** 2).sum()), 6)
+    cfg = load_config()
+    n = top_n or cfg["concentration"]["top_n"]
+    col = DIMENSIONS.get(dimension, dimension)
 
+    total_exposure = float(df[_EXPOSURE].sum())
+    total_count = len(df)
 
-def _classify_hhi(hhi: float, limits: dict | None = None) -> str:
-    lim = limits or CONCENTRATION_LIMITS
-    if hhi >= lim["hhi_high_threshold"]:
-        return "High"
-    if hhi >= lim["hhi_moderate_threshold"]:
-        return "Moderate"
-    return "Low"
-
-
-def check_single_name_concentration(
-    df: pd.DataFrame,
-    limit_pct: float | None = None,
-) -> pd.DataFrame:
-    """Flag borrowers whose EAD exceeds the single-name limit."""
-    limit = limit_pct or CONCENTRATION_LIMITS["single_name_pct"]
-    total_ead = float(df["ead"].sum())
-    threshold = total_ead * limit
-
-    borrower_ead = df.groupby("borrower_id", as_index=False).agg(
-        total_ead=("ead", "sum"),
-        facility_count=("facility_id", "count"),
+    grouped = df.groupby(col, dropna=False).agg(
+        loan_count=(_EXPOSURE, "size"),
+        exposure=(_EXPOSURE, "sum"),
+        defaults=("is_default", "sum"),
+        chargeoff_amount=("grosschargeoffamount", "sum"),
     )
-    borrower_ead["ead_share"] = (borrower_ead["total_ead"] / max(total_ead, 1)).round(4)
-    borrower_ead["breach"] = borrower_ead["total_ead"] > threshold
-    borrower_ead["limit_pct"] = limit
+    grouped["exposure_share"] = (grouped["exposure"] / total_exposure).round(4)
+    grouped["count_share"] = (grouped["loan_count"] / total_count).round(4)
+    grouped["chargeoff_rate_count"] = (grouped["defaults"] / grouped["loan_count"]).round(4)
+    grouped["chargeoff_rate_dollar"] = (grouped["chargeoff_amount"] / grouped["exposure"]).round(4)
 
-    return borrower_ead.sort_values("total_ead", ascending=False).reset_index(drop=True)
-
-
-def check_sector_concentration(
-    df: pd.DataFrame,
-    limit_pct: float | None = None,
-) -> pd.DataFrame:
-    """Flag industries exceeding the sector concentration limit."""
-    limit = limit_pct or CONCENTRATION_LIMITS["sector_pct"]
-    total_ead = float(df["ead"].sum())
-    threshold = total_ead * limit
-
-    sector_ead = df.groupby("industry", as_index=False).agg(
-        total_ead=("ead", "sum"),
-        facility_count=("facility_id", "count"),
+    out = (
+        grouped.sort_values("exposure", ascending=False)
+        .head(n)
+        .reset_index()
+        .rename(columns={col: dimension})
     )
-    sector_ead["ead_share"] = (sector_ead["total_ead"] / max(total_ead, 1)).round(4)
-    sector_ead["breach"] = sector_ead["total_ead"] > threshold
-    sector_ead["limit_pct"] = limit
-
-    return sector_ead.sort_values("total_ead", ascending=False).reset_index(drop=True)
+    return out
 
 
-def generate_concentration_report(df: pd.DataFrame) -> pd.DataFrame:
-    """Comprehensive concentration metrics across all dimensions."""
-    records: list[dict] = []
+def hhi_summary(df: pd.DataFrame) -> pd.DataFrame:
+    """HHI and top-N exposure share for each concentration dimension."""
+    cfg = load_config()
+    n = cfg["concentration"]["top_n"]
+    moderate = cfg["concentration"]["hhi_moderate_threshold"]
+    high = cfg["concentration"]["hhi_high_threshold"]
 
-    for dimension in ("industry", "region", "product_type", "borrower_id"):
-        hhi = calculate_hhi(df, dimension)
+    records = []
+    for dimension, col in DIMENSIONS.items():
+        exposure_by_seg = df.groupby(col, dropna=False)[_EXPOSURE].sum()
+        hhi = herfindahl_index(exposure_by_seg)
+        level = "High" if hhi >= high else "Moderate" if hhi >= moderate else "Low"
         records.append({
             "dimension": dimension,
+            "segments": int(exposure_by_seg.shape[0]),
             "hhi": hhi,
-            "concentration_level": _classify_hhi(hhi),
-            "unique_values": int(df[dimension].nunique()),
+            "concentration_level": level,
+            f"top{n}_exposure_share": top_n_share(exposure_by_seg, n),
         })
+        _log.info("Concentration %s: HHI=%.4f (%s), %d segments",
+                  dimension, hhi, level, exposure_by_seg.shape[0])
 
     return pd.DataFrame.from_records(records)

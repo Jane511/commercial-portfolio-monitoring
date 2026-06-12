@@ -1,0 +1,13 @@
+metric,value
+Funded loans,"1,087,019"
+Approval FY range,2000-2019
+Total gross approval ($),"287,809,010,585"
+Charged-off loans (count),"132,662"
+Charge-off rate (count),12.20%
+Charge-off rate ($),4.92%
+Distinct NAICS sectors,21
+Distinct borrower states,60
+Distinct lenders,"4,221"
+Missing NAICS sector,"16,922"
+Missing approval date,0
+Charge-offs missing charge-off date,13

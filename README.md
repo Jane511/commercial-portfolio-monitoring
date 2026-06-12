@@ -1,81 +1,150 @@
-# Commercial Portfolio Monitoring & Early Risk Analytics Project
+# Commercial Portfolio Monitor — SBA 7(a) real data
 
-This repository is the post-origination monitoring and impairment reporting layer in the commercial credit-risk stack. It uses loan-level expected loss data, prior-period snapshots, and optional pricing or capital inputs to produce facility-level ECL outputs, stage summaries, transition matrices, early-warning views, and concentration reports. The project is positioned as a portfolio monitoring layer that is relevant to both bank-style impairment review and non-bank portfolio performance management.
+> Commercial portfolio monitoring on **real SBA small-business loan data** —
+> industry/state concentration (HHI, top-N), charge-off rates and vintage cohort
+> curves, and early-warning segmentation.
 
-## What this repo is
+This project monitors a real, public, **commercial** lending book: ~1.09M U.S.
+Small Business Administration **7(a)** loans (approval fiscal years 2000–2019,
+~$288B of gross approvals). It is deliberately simple and interpretable —
+pandas aggregations, clear definitions, one results table per notebook — and
+its strength is **concentration and charge-off cohort analytics on genuine
+commercial loans**.
 
-This project demonstrates how a commercial portfolio can be monitored after origination using staging, lifetime PD, scenario-weighted ECL, migration, and concentration analytics. It is designed as a portfolio project, so the workflow is transparent, the assumptions are clearly disclosed, and the outputs are shaped for recruiter-friendly review across both institutional and non-bank lending contexts.
+SBA data is outcome-level (one final status per loan), not a monthly grade
+panel, so this repo does a *coarse* performing-vs-defaulted view. Full IFRS 9
+staging, monthly transition matrices and ECL live in the companion **Freddie Mac
+mortgage monitor** (see [Related projects](#related-projects)) — that boundary is
+intentional and not duplicated here.
 
-## Where it sits in the stack
+---
 
-Upstream inputs:
-- `expected-loss-engine-commercial`
-- optional facility-level capital context from `RWA-capital-commercial`
-- optional pricing context from `RAROC-pricing-and-return-hurdle`
-- prior-period snapshots and reviewer inputs staged under `data/`
+## See it in 30 seconds
 
-Downstream consumers:
-- portfolio monitoring packs and early-warning review
-- impairment and stage-movement summaries
-- employer-ready disclosure and management-reporting examples
+No download or run needed — everything below is committed real output:
 
-## How this is used in practice
+- 📄 **[Monitoring pack report](outputs/report.md)** — the one-page credit-committee summary.
+- 📊 **[Charts](outputs/charts/)** — concentration, charge-off, vintage cohort curves.
+- 📋 **[Result tables](outputs/tables/)** — one CSV per analysis step.
+- 📓 **Notebooks** — [00 Load & clean](notebooks/00_load_and_clean.ipynb) ·
+  [01 Base table](notebooks/01_monitoring_base_table.ipynb) ·
+  [02 Concentration](notebooks/02_concentration.ipynb) ·
+  [03 Charge-off & vintage](notebooks/03_chargeoff_and_vintage.ipynb) ·
+  [04 Transitions & early warning](notebooks/04_transitions_and_early_warning.ipynb) ·
+  [05 Report](notebooks/05_monitoring_report.ipynb)
 
-This project can be applied in:
+To reproduce locally:
 
-### Bank / Institutional context
-
-- Portfolio risk monitoring, staging, and impairment-style reporting
-- Early-warning and migration analysis for structured risk review
-- Concentration, watchlist, and management reporting support
-
-### Non-bank / Fintech context
-
-- Early risk monitoring and portfolio performance tracking after origination
-- Roll-rate, arrears-style, and warning-signal review for collections or servicing teams
-- Management reporting on customer cohorts, segments, and emerging risk pockets
-
-## Key outputs
-
-- `data/output/facility_ecl.csv`
-- `data/output/ecl_summary_by_stage.csv`
-- `data/output/ecl_summary_by_segment.csv`
-- `data/output/concentration_report.csv`
-- `data/output/transition_matrix_grade.csv`
-- `data/output/transition_matrix_stage.csv`
-- `data/output/early_warning_summary.csv`
-- `data/output/aps330_stage_movement.csv`
-- `data/output/aps330_credit_quality.csv`
-
-## Repo structure
-
-- `data/`: tracked folder guide plus runtime-created `input/`, `manual/`, `processed/`, and `output/` subfolders used during local runs
-- `src/`: reusable staging, lifetime PD, ECL, migration, and monitoring modules
-- `scripts/`: wrapper scripts for pipeline execution
-- `docs/`: methodology and disclosure notes
-- `notebooks/`: reviewer-facing notebook index and walkthrough placeholders
-- `tests/`: validation and regression checks
-
-## How to run
-
-```powershell
-python -m src.pipeline --refresh-demo-inputs
+```bash
+pip install -r requirements.txt
+# place the SBA 7(a) FOIA CSVs in data/input/  (see Data sources & provenance)
+python -m src.run_pipeline          # writes outputs/tables, outputs/charts, outputs/report.md
+python -m src.build_notebooks       # (optional) rebuild + execute notebooks 00–05
+pytest                              # fast unit tests on a synthetic fixture
 ```
 
-Or:
+---
 
-```powershell
-python scripts/run_pipeline.py --refresh-demo-inputs
+## What this produces
+
+**Headline read (real output, FY2000–2019):**
+
+| Metric | Value |
+|---|---|
+| Funded 7(a) loans | 1,087,019 |
+| Total gross approval | $287.8B |
+| Charge-off rate (by count / by $) | 12.2% / 4.9% |
+| Industry concentration (HHI) | 0.10 — *Moderate* |
+| State / lender concentration (HHI) | 0.06 / 0.01 — *Low* |
+
+**Charge-off rate by approval-year vintage** — the 2005–2008 crisis-origination
+cohorts charged off at ~24–29%, roughly **5× the calm-year cohorts**. Recent
+vintages (grey) are not yet fully seasoned and under-report their eventual total:
+
+![Charge-off rate by vintage](outputs/charts/chargeoff_by_vintage.png)
+
+**Vintage cohort curves** — cumulative charge-off rate as each cohort ages; the
+crisis vintages sit far above the rest:
+
+![Vintage cohort curves](outputs/charts/vintage_cohort_curves.png)
+
+Other outputs (all in [`outputs/`](outputs/)):
+
+- **Concentration** — exposure & count by industry (NAICS sector), state, and
+  lender, each with top-N share and HHI.
+- **Charge-off rates** — by industry, loan-size band, and vintage. (Smaller
+  loans default far more: ~16% on ≤$50k vs ~3% on >$2m.)
+- **Loan-age transition view** — *when* charge-offs occur, by loan age (the
+  SBA-feasible substitute for a monthly migration matrix).
+- **Early-warning segments** — industry × vintage × size buckets charging off
+  ≥1.5× the portfolio average, with a minimum size so noise can't trip a flag.
+- **Stage proxy** — coarse performing-vs-defaulted split, clearly labelled a
+  proxy, plus an *APS 330-style* credit-quality table (format only, not a
+  regulatory disclosure).
+
+### Key definitions
+
+- **Default = charge-off** (`LoanStatus == CHGOFF`). Performing = paid in full or current.
+- **Charge-off rate** = charged-off count (or $) ÷ total in the segment.
+- **Vintage** = approval-year cohort.
+- **HHI (Herfindahl–Hirschman Index)** = sum of squared segment shares; 0 =
+  diversified, 1.0 = fully concentrated. Higher = more concentrated.
+
+---
+
+## Repo layout
+
+```
+config.yaml              business parameters (universe, size bands, HHI bounds, early-warning rules)
+src/
+  data_loader.py         read + clean the SBA CSVs (dates, status codes, NAICS → sector)
+  base_table.py          one row per loan + derived fields (vintage, size band, default flag, age)
+  concentration.py       HHI + top-N by industry / state / lender
+  chargeoff.py           charge-off rates by industry / size band / vintage
+  vintage.py             cumulative charge-off cohort curves (vintage × months-on-book)
+  transitions.py         loan-age transition view
+  early_warning.py       elevated-risk segment flags
+  report.py              stage proxy, APS 330-style table, Markdown monitoring pack
+  charts.py              matplotlib chart helpers
+  pipeline.py            orchestrates everything → outputs/
+  run_pipeline.py        CLI entry point (python -m src.run_pipeline)
+  build_notebooks.py     (re)generate + execute notebooks 00–05
+notebooks/               00–05, each with a plain-English summary + one results table
+outputs/                 committed snapshots: tables/, charts/, report.md
+docs/                    data dictionary, methodology, assumptions
+tests/                   fast unit tests on a synthetic fixture (no raw data needed)
 ```
 
-Run validation tests:
+---
 
-```powershell
-pytest
-```
+## Data sources & provenance
 
-## Limitations / Demo-Only Note
+- **Source:** U.S. Small Business Administration open data ([data.sba.gov](https://data.sba.gov)) —
+  the **7(a) FOIA** loan-level dataset (CSV).
+- **Files used:** `foia-7a-fy2000-fy2009-*.csv` and `foia-7a-fy2010-fy2019-*.csv`
+  (approval fiscal years 2000–2019), plus the official data dictionary.
+- **Compliance:** SBA FOIA data is public / U.S. Government and free to use. The
+  large raw CSVs are **gitignored** — download them yourself and drop them in
+  `data/input/`. Only small output snapshots, charts, and the report are committed.
+- **Scope note:** this build uses the 7(a) program. The 504 FOIA dataset can be
+  added with no code change — any `foia-7a-*.csv` (or sibling) file in
+  `data/input/` is picked up automatically by the loader.
 
-- All monitoring inputs are synthetic or simulated for demonstration purposes.
-- The repo shows a practical monitoring and impairment workflow, not a production accounting, disclosure, or regulatory reporting platform.
-- Scenario weights, staging thresholds, and early-warning rules are simplified so the logic remains easy to inspect.
+---
+
+## Related projects
+
+- **Freddie Mac mortgage monitor** — the companion repo for full IFRS 9 staging,
+  monthly **transition matrices**, roll rates and ECL on a monthly performance
+  panel. This SBA repo deliberately stops at a coarse performing-vs-defaulted
+  proxy and points there for the staging machinery.
+- **Residential mortgage credit-risk repo** — loan-level mortgage default
+  modelling on public data (consumer counterpart to this commercial book).
+
+Together they cover **commercial** (this repo) and **residential/mortgage**
+portfolio monitoring on real, public data.
+
+---
+
+_Built with pandas + matplotlib. Monitoring outputs only — not regulated
+disclosure or credit advice._
