@@ -57,16 +57,32 @@ pytest                              # fast unit tests on a synthetic fixture
 | Industry concentration (HHI) | 0.10 — *Moderate* |
 | State / lender concentration (HHI) | 0.06 / 0.01 — *Low* |
 
-**Charge-off rate by approval-year vintage** — the 2005–2008 crisis-origination
-cohorts charged off at ~24–29%, roughly **5× the calm-year cohorts**. Recent
-vintages (grey) are not yet fully seasoned and under-report their eventual total:
+## Key charts
 
-![Charge-off rate by vintage](outputs/charts/chargeoff_by_vintage.png)
+*All charts are regenerated from the committed result tables in [outputs/tables/](outputs/tables/)
+by [reports/make_figures.py](reports/make_figures.py) — aggregated portfolio metrics only.*
 
-**Vintage cohort curves** — cumulative charge-off rate as each cohort ages; the
-crisis vintages sit far above the rest:
+### 1. Charge-off rate by approval-year vintage
+![Charge-off rate by vintage spiking to ~29% for the 2007 cohort](reports/figures/chargeoff_by_vintage.png)
 
-![Vintage cohort curves](outputs/charts/vintage_cohort_curves.png)
+**What this shows:** the eventual charge-off rate of each origination-year cohort; grey points are recent vintages not yet fully seasoned.
+**Why it matters:** the 2005–2008 crisis-origination cohorts charged off at ~24–29%, roughly **5× the calm-year cohorts** — proof that *when* a loan was written drives its loss.
+
+### 2. Exposure concentration by industry
+![Top 10 industries by exposure share with industry HHI of 0.10](reports/figures/concentration_by_industry.png)
+
+**What this shows:** the ten industries holding the most exposure, with the portfolio's industry concentration (HHI) and top-10 share.
+**Why it matters:** concentration is itself a risk — this is the first slide a credit committee reads, and an HHI of 0.10 (Moderate) with the top-10 holding ~87% says where a sector shock would land.
+
+### 3. Charge-off rate by industry
+![Top 10 industries by charge-off rate](reports/figures/chargeoff_by_industry.png)
+
+**What this shows:** the industries with the highest charge-off rates by loan count.
+**Why it matters:** read together with concentration, it flags where high exposure meets high loss rate — the segments to watch and price for.
+
+*Full methodology and the monitoring pack: see the [notebooks](notebooks/) and [outputs/report.md](outputs/report.md).*
+
+---
 
 Other outputs (all in [`outputs/`](outputs/)):
 
