@@ -45,6 +45,29 @@ pytest                              # fast unit tests on a synthetic fixture
 
 ---
 
+## How this maps to the APRA / Basel framework
+
+> Portfolio **monitoring** demonstration on public SBA data — not a regulatory submission. It shows
+> the monitoring methods and framework awareness; operational items (use test, Board reporting, daily
+> monitoring) are noted as production intent, not implemented. SBA data is outcome-level, so the
+> model-performance and IFRS 9 staging layers are deliberately out of scope here (see the Freddie Mac
+> monitor).
+
+| Framework requirement | Where / how it's evidenced here |
+|---|---|
+| Default definition (APS 220: 90+ DPD / UTP) | `default = charge-off` (CHGOFF), labelled a **lagging** write-off point vs the 90+DPD/UTP reference; a pre-charge-off **problem-exposure / early-warning** layer (DELINQ / PSTDUE / IN LIQUIDATION) sits ahead of it — [src/problem_exposure.py](src/problem_exposure.py), nb 04 |
+| Concentration limits (APS 220 para 35) | HHI + top-N by **industry / state / single-lender (top-20)**, tied to the appetite limits — [src/concentration.py](src/concentration.py), nb 02 |
+| Risk appetite + limits (APS 220 para 20/35) | config-driven appetite table — amber/red, owner, breach action, review cycle — [config.yaml](config.yaml), [src/risk_appetite.py](src/risk_appetite.py) |
+| Board MI / RAG dashboard (APG 220 para 65) | the pack opens with a `metric \| value \| limit \| RAG` dashboard + an actions table for amber/red items — [src/report.py](src/report.py), [outputs/report.md](outputs/report.md) |
+| Leading vs lagging (APG 220 para 66) | every metric labelled; origination-mix trend + vintage-over-vintage early-MOB leading views — [src/leading.py](src/leading.py), nb 03 |
+| Charge-off & vintage cohort analytics | charge-off by industry / size / vintage + cumulative cohort curves — [src/chargeoff.py](src/chargeoff.py), [src/vintage.py](src/vintage.py), nb 03 |
+| Stress → limits (APS 220 para 73) | a crisis-era charge-off multiplier (the 2006–08 cohorts) re-tested against the appetite limits — [src/stress.py](src/stress.py) |
+| Independent validation (APS 220 paras 75–76) | the monitoring framework would be independently validated annually — [docs/governance.md](docs/governance.md). **No PD/LGD/EAD model lives here → model-performance (Layer 4) is N/A**; see the sister modelling repos |
+| Pillar 3 (APS 330) | the concentration / credit-quality outputs feed an **APS 330-style** credit-quality table — **format only**, not a regulatory disclosure — [src/report.py](src/report.py) |
+| Out of scope (by design) | monthly transition matrices, IFRS 9 staging, ECL — SBA data is outcome-level; these live in the **Freddie Mac monitor** |
+
+---
+
 ## What this produces
 
 **Headline read (real output, FY2000–2019):**
