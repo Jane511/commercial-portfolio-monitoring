@@ -1,3 +1,5 @@
+![CI](https://github.com/Jane511/commercial-portfolio-monitoring/actions/workflows/ci.yml/badge.svg)
+
 # Commercial Portfolio Monitor — SBA 7(a) real data
 
 > Commercial portfolio monitoring on **real SBA small-business loan data** —
