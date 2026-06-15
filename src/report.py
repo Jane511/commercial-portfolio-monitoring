@@ -126,12 +126,17 @@ def build_markdown_report(
     problem_exposure: pd.DataFrame | None = None,
     appetite: pd.DataFrame | None = None,
     appetite_actions: pd.DataFrame | None = None,
+    leading_map: pd.DataFrame | None = None,
+    origination: pd.DataFrame | None = None,
+    vov_early_mob: pd.DataFrame | None = None,
 ) -> str:
     """Assemble a short monitoring-pack report (Markdown) from key tables.
 
-    The optional args (CML-1/CML-3) keep existing callers/tests working:
-    *problem_exposure* adds the pre-charge-off early-warning layer, and
-    *appetite* / *appetite_actions* lead the pack with the board RAG dashboard.
+    The optional args (CML-1/CML-3/CML-4) keep existing callers/tests working:
+    *problem_exposure* adds the pre-charge-off early-warning layer, *appetite* /
+    *appetite_actions* lead the pack with the board RAG dashboard, and
+    *leading_map* / *origination* / *vov_early_mob* add the leading-vs-lagging
+    framing and the two leading views.
     """
     lines: list[str] = []
     a = lines.append
@@ -252,6 +257,50 @@ def build_markdown_report(
               f"{_RAG_BADGE.get(r['rag'], r['rag'])} | {r['owner']} | "
               f"{r['breach_action']} | {r['review_cycle']} |")
         a("")
+
+    if leading_map is not None and not leading_map.empty:
+        a("## 8. Leading vs lagging — framing & leading views")
+        a("")
+        a("_APG 220 para 66 — favour **forward-looking** signals. SBA is "
+          "outcome-level, so most metrics here are lagging by nature; the table "
+          "is explicit about which is which, and the two leading views below "
+          "are the forward signals the data still supports._")
+        a("")
+        a("| Metric | Type | Rationale |")
+        a("|---|---|---|")
+        for _, r in leading_map.iterrows():
+            a(f"| {r['metric']} | {r['type']} | {r['rationale']} |")
+        a("")
+
+        if origination is not None and not origination.empty:
+            a("**8a. Origination volume & mix trend by approval year (leading).** "
+              "A swing into higher-charge-off sectors or larger tickets leads the "
+              "future book charge-off rate. Most recent 8 cohorts:")
+            a("")
+            a("| Approval FY | Loans | Exposure ($) | YoY growth | Top sector | "
+              "Top-sector share | Large-ticket share |")
+            a("|---|---|---|---|---|---|---|")
+            for _, r in origination.tail(8).iterrows():
+                yoy = _fmt_pct(r["exposure_yoy_growth"]) if pd.notna(r["exposure_yoy_growth"]) else "—"
+                a(f"| {int(r['vintage'])} | {int(r['loans_originated']):,} | "
+                  f"{_fmt_money(r['exposure'])} | {yoy} | {r['top_sector']} | "
+                  f"{_fmt_pct(r['top_sector_share'])} | {_fmt_pct(r['large_ticket_share'])} |")
+            a("")
+
+        if vov_early_mob is not None and not vov_early_mob.empty:
+            ref = int(vov_early_mob["reference_mob"].iloc[0])
+            a(f"**8b. Vintage-over-vintage early-MOB charge-off ({ref}m, leading).** "
+              "Is a young cohort charging off faster than its predecessor did at "
+              "the same age? A ratio > 1 is a forward deterioration signal:")
+            a("")
+            a(f"| Vintage | Charge-off @ {ref}m | Prior vintage @ {ref}m | VoV ratio |")
+            a("|---|---|---|---|")
+            for _, r in vov_early_mob.iterrows():
+                prior = _fmt_pct(r["prior_vintage_rate"]) if pd.notna(r["prior_vintage_rate"]) else "—"
+                ratio = f"{r['vintage_over_vintage_ratio']:.2f}x" if pd.notna(r["vintage_over_vintage_ratio"]) else "—"
+                a(f"| {int(r['vintage'])} | {_fmt_pct(r['early_mob_chargeoff'])} | "
+                  f"{prior} | {ratio} |")
+            a("")
 
     a("---")
     a("")

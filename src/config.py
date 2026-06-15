@@ -50,6 +50,9 @@ OUTPUT_TABLES = {
     "aps330_credit_quality": TABLES_DIR / "05_aps330_style_credit_quality.csv",
     "risk_appetite_dashboard": TABLES_DIR / "06_risk_appetite_dashboard.csv",
     "risk_appetite_actions": TABLES_DIR / "06_risk_appetite_actions.csv",
+    "leading_lagging_map": TABLES_DIR / "07_leading_lagging_map.csv",
+    "origination_trend": TABLES_DIR / "07_origination_trend.csv",
+    "vintage_over_vintage_early_mob": TABLES_DIR / "07_vintage_over_vintage_early_mob.csv",
 }
 
 # --------------------------------------------------------------------------- #

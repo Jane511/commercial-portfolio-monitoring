@@ -14,6 +14,7 @@ from pathlib import Path
 
 from . import chargeoff as co
 from . import concentration as conc
+from . import leading
 from . import problem_exposure as pe
 from . import report as rpt
 from . import risk_appetite as ra
@@ -97,11 +98,18 @@ def run_pipeline(
     _log.info("Step 7/7 — Risk appetite & limit dashboard")
     appetite = ra.appetite_dashboard(base, config=cfg)
     appetite_actions = ra.appetite_actions(appetite)
+
+    # --- 07 Leading-vs-lagging framing + leading views -------------------- #
+    leading_map = leading.metric_classification()
+    origination = leading.origination_trend(base, config=cfg)
+    vov_early_mob = leading.vintage_over_vintage_early_mob(base, config=cfg)
     report_md = rpt.build_markdown_report(
         dq=dq, hhi=conc_hhi, co_industry=co_industry, co_vintage=co_vintage,
         early_warning=early, stage_proxy=stage_proxy,
         problem_exposure=pe_overview,
         appetite=appetite, appetite_actions=appetite_actions,
+        leading_map=leading_map, origination=origination,
+        vov_early_mob=vov_early_mob,
     )
 
     results = {
@@ -123,6 +131,9 @@ def run_pipeline(
         "aps330_credit_quality": aps330,
         "risk_appetite_dashboard": appetite,
         "risk_appetite_actions": appetite_actions,
+        "leading_lagging_map": leading_map,
+        "origination_trend": origination,
+        "vintage_over_vintage_early_mob": vov_early_mob,
     }
 
     if persist:

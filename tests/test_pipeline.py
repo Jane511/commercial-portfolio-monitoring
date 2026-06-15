@@ -13,6 +13,7 @@ import pytest
 
 from src import chargeoff as co
 from src import concentration as conc
+from src import leading
 from src import problem_exposure as pe
 from src import report as rpt
 from src import risk_appetite as ra
@@ -293,6 +294,31 @@ def test_appetite_actions_only_amber_red(base, cfg):
     assert len(actions) == len(flagged)
     if not actions.empty:
         assert {"action", "owner", "due"} <= set(actions.columns)
+
+
+# --------------------------------------------------------------------------- #
+# Leading vs lagging (CML-4)                                                  #
+# --------------------------------------------------------------------------- #
+def test_metric_classification_has_leading_and_lagging():
+    m = leading.metric_classification()
+    assert {"Leading", "Lagging"} <= set(m["type"].str.replace("/static", "", regex=False))
+    # The problem-exposure layer is one of the leading signals.
+    assert m[m["metric"].str.contains("Problem-exposure")]["type"].iloc[0] == "Leading"
+
+
+def test_origination_trend(base, cfg):
+    tr = leading.origination_trend(base, config=cfg)
+    assert {"exposure_yoy_growth", "top_sector_share", "large_ticket_share"} <= set(tr.columns)
+    assert tr["vintage"].is_monotonic_increasing
+    assert (tr["top_sector_share"].between(0, 1)).all()
+
+
+def test_vintage_over_vintage_early_mob(base, cfg):
+    vov = leading.vintage_over_vintage_early_mob(base, config=cfg)
+    if not vov.empty:
+        assert (vov["early_mob_chargeoff"].between(0, 1)).all()
+        # Ratio is rate / prior rate; first row has no prior.
+        assert pd.isna(vov["vintage_over_vintage_ratio"].iloc[0])
 
 
 # --------------------------------------------------------------------------- #
