@@ -310,3 +310,23 @@ def test_report_builds(base, cfg):
     assert "APS 330-style" in md
     # Stage proxy is a 2-row performing/defaulted split.
     assert len(stage) == 2
+
+
+def test_report_leads_with_rag_dashboard(base, cfg):
+    dq = data_quality_summary(base, config=cfg)
+    hhi = conc.hhi_summary(base)
+    co_ind = co.chargeoff_by_industry(base)
+    co_vin = co.chargeoff_by_vintage(base)
+    early = flag_high_risk_segments(base, config=cfg)
+    stage = rpt.stage_proxy_summary(base, config=cfg)
+    dash = ra.appetite_dashboard(base, config=cfg)
+    actions = ra.appetite_actions(dash)
+    md = rpt.build_markdown_report(
+        dq, hhi, co_ind, co_vin, early, stage,
+        appetite=dash, appetite_actions=actions,
+    )
+    # Dashboard leads the pack (before "Portfolio at a glance").
+    assert "Board credit-risk dashboard" in md
+    assert md.index("Board credit-risk dashboard") < md.index("Portfolio at a glance")
+    assert "RAG status" in md
+    assert "Risk appetite & limit register" in md

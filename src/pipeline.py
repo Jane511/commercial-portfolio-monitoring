@@ -101,6 +101,7 @@ def run_pipeline(
         dq=dq, hhi=conc_hhi, co_industry=co_industry, co_vintage=co_vintage,
         early_warning=early, stage_proxy=stage_proxy,
         problem_exposure=pe_overview,
+        appetite=appetite, appetite_actions=appetite_actions,
     )
 
     results = {

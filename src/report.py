@@ -66,6 +66,56 @@ def _fmt_money(x: float) -> str:
     return f"${x:,.0f}" if pd.notna(x) else "—"
 
 
+_RAG_BADGE = {"GREEN": "🟢 GREEN", "AMBER": "🟡 AMBER", "RED": "🔴 RED", "N/A": "⚪ N/A"}
+
+
+def _fmt_limit_value(basis: str, v: float) -> str:
+    """Format an appetite metric for display per its natural units."""
+    if pd.isna(v):
+        return "—"
+    if basis == "hhi_industry":
+        return f"{v:.4f}"
+    if basis == "vintage_early_mob_multiple":
+        return f"{v:.2f}x"
+    return f"{v:.1%}"  # shares and rates
+
+
+def _render_dashboard(a, appetite: pd.DataFrame, actions: pd.DataFrame | None) -> None:
+    """Render the board RAG dashboard + actions table at the top of the report."""
+    n_amber = int((appetite["rag"] == "AMBER").sum())
+    n_red = int((appetite["rag"] == "RED").sum())
+    n_green = int((appetite["rag"] == "GREEN").sum())
+
+    a("## Board credit-risk dashboard — RAG vs risk-appetite limits")
+    a("")
+    a(f"_Status: 🟢 {n_green} within appetite · 🟡 {n_amber} amber · 🔴 {n_red} red. "
+      "Limits, owners and breach actions are defined in `config.yaml` "
+      "(risk_appetite) per APS 220 paras 20/35; see section 7._")
+    a("")
+    a("| Metric | Value | Amber | Red | RAG status | Owner |")
+    a("|---|---|---|---|---|---|")
+    for _, r in appetite.iterrows():
+        basis = r["basis"]
+        a(f"| {r['metric']} | {_fmt_limit_value(basis, r['value'])} | "
+          f"{_fmt_limit_value(basis, r['amber'])} | {_fmt_limit_value(basis, r['red'])} | "
+          f"{_RAG_BADGE.get(r['rag'], r['rag'])} | {r['owner']} |")
+    a("")
+
+    a("**Actions (amber/red items):**")
+    a("")
+    if actions is None or actions.empty:
+        a("_All limits within appetite — no escalation actions outstanding._")
+    else:
+        a("| Action | Owner | Due | Trigger |")
+        a("|---|---|---|---|")
+        for _, r in actions.iterrows():
+            a(f"| {r['action']} | {r['owner']} | {r['due']} | "
+              f"{r['metric']} ({_RAG_BADGE.get(r['rag'], r['rag'])}) |")
+    a("")
+    a("---")
+    a("")
+
+
 def build_markdown_report(
     dq: pd.DataFrame,
     hhi: pd.DataFrame,
@@ -74,11 +124,14 @@ def build_markdown_report(
     early_warning: pd.DataFrame,
     stage_proxy: pd.DataFrame,
     problem_exposure: pd.DataFrame | None = None,
+    appetite: pd.DataFrame | None = None,
+    appetite_actions: pd.DataFrame | None = None,
 ) -> str:
     """Assemble a short monitoring-pack report (Markdown) from key tables.
 
-    *problem_exposure* (CML-1) is optional so existing callers/tests keep
-    working; when supplied it adds the pre-charge-off early-warning layer.
+    The optional args (CML-1/CML-3) keep existing callers/tests working:
+    *problem_exposure* adds the pre-charge-off early-warning layer, and
+    *appetite* / *appetite_actions* lead the pack with the board RAG dashboard.
     """
     lines: list[str] = []
     a = lines.append
@@ -89,6 +142,9 @@ def build_markdown_report(
       "regulated disclosure. Any APS 330-style table below is laid out in that "
       "format for familiarity and is labelled accordingly._")
     a("")
+
+    if appetite is not None and not appetite.empty:
+        _render_dashboard(a, appetite, appetite_actions)
 
     a("## 1. Portfolio at a glance")
     a("")
@@ -179,6 +235,23 @@ def build_markdown_report(
         a(f"| {r['proxy_stage']} | {int(r['loan_count']):,} | "
           f"{r['exposure']:,.0f} | {_fmt_pct(r['exposure_share'])} |")
     a("")
+
+    if appetite is not None and not appetite.empty:
+        a("## 7. Risk appetite & limit register (full)")
+        a("")
+        a("_APS 220 para 20 (appetite statement) + para 35 (concentration "
+          "limits — industry, geography, single name / lender). The board "
+          "dashboard at the top reports live RAG against these limits._")
+        a("")
+        a("| Metric | Value | Amber | Red | RAG | Owner | Breach action | Review |")
+        a("|---|---|---|---|---|---|---|---|")
+        for _, r in appetite.iterrows():
+            basis = r["basis"]
+            a(f"| {r['metric']} | {_fmt_limit_value(basis, r['value'])} | "
+              f"{_fmt_limit_value(basis, r['amber'])} | {_fmt_limit_value(basis, r['red'])} | "
+              f"{_RAG_BADGE.get(r['rag'], r['rag'])} | {r['owner']} | "
+              f"{r['breach_action']} | {r['review_cycle']} |")
+        a("")
 
     a("---")
     a("")

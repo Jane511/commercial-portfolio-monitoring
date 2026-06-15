@@ -2,6 +2,28 @@
 
 _Real public SBA 7(a) loan-level data. Monitoring outputs only — not a regulated disclosure. Any APS 330-style table below is laid out in that format for familiarity and is labelled accordingly._
 
+## Board credit-risk dashboard — RAG vs risk-appetite limits
+
+_Status: 🟢 4 within appetite · 🟡 2 amber · 🔴 0 red. Limits, owners and breach actions are defined in `config.yaml` (risk_appetite) per APS 220 paras 20/35; see section 7._
+
+| Metric | Value | Amber | Red | RAG status | Owner |
+|---|---|---|---|---|---|
+| Industry concentration (HHI) | 0.1004 | 0.1000 | 0.1800 | 🟡 AMBER | Head of Credit Risk |
+| Top single-industry exposure share | 17.7% | 20.0% | 30.0% | 🟢 GREEN | Head of Credit Risk |
+| Largest single-lender exposure share | 7.2% | 10.0% | 15.0% | 🟢 GREEN | Head of Counterparty Risk |
+| Top-20 lender exposure share | 42.2% | 45.0% | 60.0% | 🟢 GREEN | Head of Counterparty Risk |
+| Portfolio charge-off rate (seasoned, count) | 13.5% | 12.0% | 16.0% | 🟡 AMBER | Chief Credit Officer |
+| Young-cohort early-MOB charge-off vs predecessors | 0.60x | 1.25x | 1.50x | 🟢 GREEN | Head of Credit Risk |
+
+**Actions (amber/red items):**
+
+| Action | Owner | Due | Trigger |
+|---|---|---|---|
+| Freeze new exposure growth in the top sector; table a diversification plan at the next Credit Committee. | Head of Credit Risk | Quarterly | Industry concentration (HHI) (🟡 AMBER) |
+| Tighten origination credit policy and pricing; escalate to the Board Risk Committee. | Chief Credit Officer | Quarterly | Portfolio charge-off rate (seasoned, count) (🟡 AMBER) |
+
+---
+
 ## 1. Portfolio at a glance
 
 | Metric | Value |
@@ -108,6 +130,19 @@ _Coarse split only — a proxy, not IFRS 9 staging. Full staging and transition 
 |---|---|---|---|
 | Defaulted (charged off) — proxy Stage 3 | 132,662 | 22,131,753,989 | 7.7% |
 | Performing — proxy Stage 1/2 | 954,357 | 265,677,256,596 | 92.3% |
+
+## 7. Risk appetite & limit register (full)
+
+_APS 220 para 20 (appetite statement) + para 35 (concentration limits — industry, geography, single name / lender). The board dashboard at the top reports live RAG against these limits._
+
+| Metric | Value | Amber | Red | RAG | Owner | Breach action | Review |
+|---|---|---|---|---|---|---|---|
+| Industry concentration (HHI) | 0.1004 | 0.1000 | 0.1800 | 🟡 AMBER | Head of Credit Risk | Freeze new exposure growth in the top sector; table a diversification plan at the next Credit Committee. | Quarterly |
+| Top single-industry exposure share | 17.7% | 20.0% | 30.0% | 🟢 GREEN | Head of Credit Risk | Review sector sub-limits; require Committee sign-off on further originations in the top sector. | Quarterly |
+| Largest single-lender exposure share | 7.2% | 10.0% | 15.0% | 🟢 GREEN | Head of Counterparty Risk | Re-underwrite the lender relationship; cap incremental volume and reassess guaranty reliance. | Quarterly |
+| Top-20 lender exposure share | 42.2% | 45.0% | 60.0% | 🟢 GREEN | Head of Counterparty Risk | Broaden the originating-lender panel; set per-lender concentration sub-limits. | Quarterly |
+| Portfolio charge-off rate (seasoned, count) | 13.5% | 12.0% | 16.0% | 🟡 AMBER | Chief Credit Officer | Tighten origination credit policy and pricing; escalate to the Board Risk Committee. | Quarterly |
+| Young-cohort early-MOB charge-off vs predecessors | 0.60x | 1.25x | 1.50x | 🟢 GREEN | Head of Credit Risk | Investigate the deteriorating cohort's origination standards; pause comparable new lending pending review. | Quarterly |
 
 ---
 
