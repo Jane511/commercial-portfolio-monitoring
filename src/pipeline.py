@@ -16,6 +16,7 @@ from . import chargeoff as co
 from . import concentration as conc
 from . import problem_exposure as pe
 from . import report as rpt
+from . import risk_appetite as ra
 from . import transitions, vintage
 from .base_table import build_base_table
 from .charts import (
@@ -88,9 +89,14 @@ def run_pipeline(
     pe_by_industry = pe.problem_exposure_by(base, "industry")
 
     # --- 05 Monitoring pack / report -------------------------------------- #
-    _log.info("Step 6/6 — Stage proxy, APS 330-style table & report")
+    _log.info("Step 6/7 — Stage proxy & APS 330-style table")
     stage_proxy = rpt.stage_proxy_summary(base, config=cfg)
     aps330 = rpt.aps330_style_credit_quality(base)
+
+    # --- 06 Risk appetite & limits (governance layer) --------------------- #
+    _log.info("Step 7/7 — Risk appetite & limit dashboard")
+    appetite = ra.appetite_dashboard(base, config=cfg)
+    appetite_actions = ra.appetite_actions(appetite)
     report_md = rpt.build_markdown_report(
         dq=dq, hhi=conc_hhi, co_industry=co_industry, co_vintage=co_vintage,
         early_warning=early, stage_proxy=stage_proxy,
@@ -114,6 +120,8 @@ def run_pipeline(
         "problem_exposure_by_industry": pe_by_industry,
         "stage_proxy": stage_proxy,
         "aps330_credit_quality": aps330,
+        "risk_appetite_dashboard": appetite,
+        "risk_appetite_actions": appetite_actions,
     }
 
     if persist:

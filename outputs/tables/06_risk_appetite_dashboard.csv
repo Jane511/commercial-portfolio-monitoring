@@ -1,0 +1,7 @@
+id,metric,basis,value,amber,red,direction,rag,utilisation_vs_red,owner,breach_action,review_cycle
+industry_hhi,Industry concentration (HHI),hhi_industry,0.1004,0.1,0.18,upper,AMBER,0.558,Head of Credit Risk,Freeze new exposure growth in the top sector; table a diversification plan at the next Credit Committee.,Quarterly
+top_industry_share,Top single-industry exposure share,top_industry_share,0.1773,0.2,0.3,upper,GREEN,0.591,Head of Credit Risk,Review sector sub-limits; require Committee sign-off on further originations in the top sector.,Quarterly
+single_lender_share,Largest single-lender exposure share,top1_lender_share,0.0716,0.1,0.15,upper,GREEN,0.477,Head of Counterparty Risk,Re-underwrite the lender relationship; cap incremental volume and reassess guaranty reliance.,Quarterly
+top20_lender_share,Top-20 lender exposure share,top20_lender_share,0.4223,0.45,0.6,upper,GREEN,0.704,Head of Counterparty Risk,Broaden the originating-lender panel; set per-lender concentration sub-limits.,Quarterly
+portfolio_chargeoff_rate,"Portfolio charge-off rate (seasoned, count)",portfolio_chargeoff_rate,0.1346,0.12,0.16,upper,AMBER,0.841,Chief Credit Officer,Tighten origination credit policy and pricing; escalate to the Board Risk Committee.,Quarterly
+vintage_deterioration,Young-cohort early-MOB charge-off vs predecessors,vintage_early_mob_multiple,0.6,1.25,1.5,upper,GREEN,0.4,Head of Credit Risk,Investigate the deteriorating cohort's origination standards; pause comparable new lending pending review.,Quarterly

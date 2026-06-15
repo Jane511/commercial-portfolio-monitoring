@@ -77,6 +77,11 @@ vintage:
   # is measured for each approval-year cohort (ChargeOffDate - ApprovalDate).
   mob_grid: [6, 12, 18, 24, 36, 48, 60, 72, 84, 96, 120]
 
+  # Early-MOB checkpoint (months) for the leading vintage-over-vintage view: is
+  # a young cohort charging off faster than its predecessors did at the same
+  # age? Used by CML-4 (leading view) and the CML-2 vintage-deterioration limit.
+  early_mob_reference: 24
+
 # ---------------------------------------------------------------------------
 # EARLY WARNING — elevated-risk segment flags
 # ---------------------------------------------------------------------------
@@ -87,3 +92,74 @@ early_warning:
   elevated_multiple: 1.5    # Flag if segment charge-off rate >= 1.5x portfolio avg.
   high_multiple: 2.0        # "High" severity if >= 2.0x portfolio average.
   min_segment_loans: 200    # Minimum loans in a segment to be eligible for a flag.
+
+# ---------------------------------------------------------------------------
+# RISK APPETITE & LIMITS (CML-2) — the governance layer
+# ---------------------------------------------------------------------------
+# APS 220 para 20 (risk appetite statement) + para 35 (concentration limits by
+# industry, geography and single name / lender). Each limit turns a descriptive
+# threshold into an appetite statement with an amber (early-warning) and red
+# (breach) bound, an owner, a defined breach action and a review cycle. These
+# drive the RAG board dashboard (CML-3) and the stress scenario (CML-5).
+#
+# `basis` names the metric the monitor computes from the book (see
+# src/risk_appetite.py:_metric_values). `direction: upper` means a breach is
+# value >= threshold (most limits); `lower` would breach when value <= threshold.
+risk_appetite:
+  default_owner: "Head of Credit Risk"
+  default_review_cycle: "Quarterly"
+  limits:
+    - id: industry_hhi
+      metric: "Industry concentration (HHI)"
+      basis: hhi_industry
+      direction: upper
+      amber: 0.10
+      red: 0.18
+      owner: "Head of Credit Risk"
+      breach_action: "Freeze new exposure growth in the top sector; table a diversification plan at the next Credit Committee."
+      review_cycle: "Quarterly"
+    - id: top_industry_share
+      metric: "Top single-industry exposure share"
+      basis: top_industry_share
+      direction: upper
+      amber: 0.20
+      red: 0.30
+      owner: "Head of Credit Risk"
+      breach_action: "Review sector sub-limits; require Committee sign-off on further originations in the top sector."
+      review_cycle: "Quarterly"
+    - id: single_lender_share
+      metric: "Largest single-lender exposure share"
+      basis: top1_lender_share
+      direction: upper
+      amber: 0.10
+      red: 0.15
+      owner: "Head of Counterparty Risk"
+      breach_action: "Re-underwrite the lender relationship; cap incremental volume and reassess guaranty reliance."
+      review_cycle: "Quarterly"
+    - id: top20_lender_share
+      metric: "Top-20 lender exposure share"
+      basis: top20_lender_share
+      direction: upper
+      amber: 0.45
+      red: 0.60
+      owner: "Head of Counterparty Risk"
+      breach_action: "Broaden the originating-lender panel; set per-lender concentration sub-limits."
+      review_cycle: "Quarterly"
+    - id: portfolio_chargeoff_rate
+      metric: "Portfolio charge-off rate (seasoned, count)"
+      basis: portfolio_chargeoff_rate
+      direction: upper
+      amber: 0.12
+      red: 0.16
+      owner: "Chief Credit Officer"
+      breach_action: "Tighten origination credit policy and pricing; escalate to the Board Risk Committee."
+      review_cycle: "Quarterly"
+    - id: vintage_deterioration
+      metric: "Young-cohort early-MOB charge-off vs predecessors"
+      basis: vintage_early_mob_multiple
+      direction: upper
+      amber: 1.25
+      red: 1.50
+      owner: "Head of Credit Risk"
+      breach_action: "Investigate the deteriorating cohort's origination standards; pause comparable new lending pending review."
+      review_cycle: "Quarterly"

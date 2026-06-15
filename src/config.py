@@ -48,6 +48,8 @@ OUTPUT_TABLES = {
     "problem_exposure_by_industry": TABLES_DIR / "04_problem_exposure_by_industry.csv",
     "stage_proxy": TABLES_DIR / "05_stage_proxy_summary.csv",
     "aps330_credit_quality": TABLES_DIR / "05_aps330_style_credit_quality.csv",
+    "risk_appetite_dashboard": TABLES_DIR / "06_risk_appetite_dashboard.csv",
+    "risk_appetite_actions": TABLES_DIR / "06_risk_appetite_actions.csv",
 }
 
 # --------------------------------------------------------------------------- #

@@ -15,6 +15,7 @@ from src import chargeoff as co
 from src import concentration as conc
 from src import problem_exposure as pe
 from src import report as rpt
+from src import risk_appetite as ra
 from src import transitions, vintage
 from src.base_table import build_base_table
 from src.config import load_config
@@ -263,6 +264,35 @@ def test_problem_exposure_by_segment(problem_base):
     seg = pe.problem_exposure_by(problem_base, "industry")
     assert {"problem_rate", "chargeoff_rate"} <= set(seg.columns)
     assert (seg["problem_rate"].between(0, 1)).all()
+
+
+# --------------------------------------------------------------------------- #
+# Risk appetite & limits (CML-2)                                              #
+# --------------------------------------------------------------------------- #
+def test_appetite_dashboard_shape(base, cfg):
+    dash = ra.appetite_dashboard(base, config=cfg)
+    # One row per configured limit, incl. the single-lender + top-20 limits.
+    assert len(dash) == len(cfg["risk_appetite"]["limits"])
+    assert {"single_lender_share", "top20_lender_share"} <= set(dash["id"])
+    assert set(dash["rag"]) <= {"GREEN", "AMBER", "RED", "N/A"}
+    assert {"owner", "breach_action", "review_cycle"} <= set(dash.columns)
+
+
+def test_appetite_rag_classification():
+    # Upper-direction: value below amber is GREEN, in [amber,red) AMBER, >=red RED.
+    assert ra._rag(0.05, 0.10, 0.18, "upper") == "GREEN"
+    assert ra._rag(0.12, 0.10, 0.18, "upper") == "AMBER"
+    assert ra._rag(0.20, 0.10, 0.18, "upper") == "RED"
+    assert ra._rag(float("nan"), 0.10, 0.18, "upper") == "N/A"
+
+
+def test_appetite_actions_only_amber_red(base, cfg):
+    dash = ra.appetite_dashboard(base, config=cfg)
+    actions = ra.appetite_actions(dash)
+    flagged = dash[dash["rag"].isin(["AMBER", "RED"])]
+    assert len(actions) == len(flagged)
+    if not actions.empty:
+        assert {"action", "owner", "due"} <= set(actions.columns)
 
 
 # --------------------------------------------------------------------------- #
