@@ -120,14 +120,18 @@ src/
   vintage.py             cumulative charge-off cohort curves (vintage × months-on-book)
   transitions.py         loan-age transition view
   early_warning.py       elevated-risk segment flags
-  report.py              stage proxy, APS 330-style table, Markdown monitoring pack
+  problem_exposure.py    pre-charge-off problem-exposure layer (DELINQ/PSTDUE/LIQUID)
+  risk_appetite.py       appetite + limit framework, RAG dashboard, actions (governance)
+  leading.py             leading-vs-lagging map, origination mix trend, vintage-over-vintage early-MOB
+  stress.py              crisis-multiplier stress scenario tested against the limits
+  report.py              stage proxy, APS 330-style table, board RAG dashboard, Markdown pack
   charts.py              matplotlib chart helpers
   pipeline.py            orchestrates everything → outputs/
   run_pipeline.py        CLI entry point (python -m src.run_pipeline)
   build_notebooks.py     (re)generate + execute notebooks 00–05
 notebooks/               00–05, each with a plain-English summary + one results table
 outputs/                 committed snapshots: tables/, charts/, report.md
-docs/                    data dictionary, methodology, assumptions
+docs/                    data dictionary, methodology, assumptions, governance
 tests/                   fast unit tests on a synthetic fixture (no raw data needed)
 ```
 
