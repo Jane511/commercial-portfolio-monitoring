@@ -163,3 +163,19 @@ risk_appetite:
       owner: "Head of Credit Risk"
       breach_action: "Investigate the deteriorating cohort's origination standards; pause comparable new lending pending review."
       review_cycle: "Quarterly"
+
+# ---------------------------------------------------------------------------
+# STRESS SCENARIO (CML-5) — stress -> limit review -> action
+# ---------------------------------------------------------------------------
+# APS 220 para 73 / APG 220 para 76. A simple, data-grounded scenario: take the
+# charge-off experience of the financial-crisis cohorts (which the data already
+# contains) as a stress multiplier and apply it to the current portfolio
+# charge-off rate, then re-test against the CML-2 charge-off-rate limit. The
+# point is the *linkage*: a stress result that breaches appetite triggers the
+# limit's breach action (tighter origination / pricing), not a standalone number.
+stress:
+  # Approval-year cohorts whose realised charge-off experience defines the
+  # crisis stress (the 2006-08 vintages charged off far above the book average).
+  crisis_vintages: [2006, 2007, 2008]
+  # Which appetite limit the stressed charge-off rate is tested against.
+  chargeoff_limit_id: portfolio_chargeoff_rate

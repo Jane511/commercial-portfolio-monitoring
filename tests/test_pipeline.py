@@ -17,6 +17,7 @@ from src import leading
 from src import problem_exposure as pe
 from src import report as rpt
 from src import risk_appetite as ra
+from src import stress as stress_mod
 from src import transitions, vintage
 from src.base_table import build_base_table
 from src.config import load_config
@@ -319,6 +320,27 @@ def test_vintage_over_vintage_early_mob(base, cfg):
         assert (vov["early_mob_chargeoff"].between(0, 1)).all()
         # Ratio is rate / prior rate; first row has no prior.
         assert pd.isna(vov["vintage_over_vintage_ratio"].iloc[0])
+
+
+# --------------------------------------------------------------------------- #
+# Stress scenario (CML-5)                                                     #
+# --------------------------------------------------------------------------- #
+def test_crisis_multiplier_above_one(base, cfg):
+    m = stress_mod.crisis_multiplier(base, config=cfg)
+    # Crisis cohorts charge off worse than the book average in the fixture.
+    assert m["crisis_chargeoff_rate"] > m["baseline_chargeoff_rate"]
+    assert m["multiplier"] > 1.0
+
+
+def test_stress_scenario_links_to_limit(base, cfg):
+    s = stress_mod.stress_scenario(base, config=cfg)
+    assert list(s["scenario"].str[:8]) == ["Baseline", "Crisis s"]
+    assert (s["chargeoff_rate"].between(0, 1)).all()
+    # Stressed rate >= baseline; stressed RAG is at least as severe.
+    assert s["chargeoff_rate"].iloc[1] >= s["chargeoff_rate"].iloc[0]
+    assert set(s["rag_vs_limit"]) <= {"GREEN", "AMBER", "RED", "N/A"}
+    # Additional charge-off exposure under stress is non-negative.
+    assert s["additional_vs_baseline"].iloc[1] >= 0
 
 
 # --------------------------------------------------------------------------- #

@@ -1,0 +1,3 @@
+scenario,chargeoff_rate,rag_vs_limit,implied_chargeoff_exposure,additional_vs_baseline,limit_amber,limit_red,breaches_appetite
+Baseline (current book),0.1346,AMBER,38739092825.0,0.0,0.12,0.16,True
+"Crisis stress (1.93x, [2006, 2007, 2008])",0.2598,RED,74772780950.0,36033688125.0,0.12,0.16,True

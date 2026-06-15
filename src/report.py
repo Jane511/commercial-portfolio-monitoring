@@ -129,6 +129,7 @@ def build_markdown_report(
     leading_map: pd.DataFrame | None = None,
     origination: pd.DataFrame | None = None,
     vov_early_mob: pd.DataFrame | None = None,
+    stress: pd.DataFrame | None = None,
 ) -> str:
     """Assemble a short monitoring-pack report (Markdown) from key tables.
 
@@ -301,6 +302,34 @@ def build_markdown_report(
                 a(f"| {int(r['vintage'])} | {_fmt_pct(r['early_mob_chargeoff'])} | "
                   f"{prior} | {ratio} |")
             a("")
+
+    if stress is not None and not stress.empty:
+        breached = bool(stress["breaches_appetite"].any())
+        a("## 9. Stress scenario — crisis multiplier vs the charge-off limit")
+        a("")
+        a("_APS 220 para 73 / APG 220 para 76. The financial-crisis cohorts "
+          "(2006-08) charged off well above the book average; that multiplier is "
+          "applied to the current portfolio charge-off rate and re-tested against "
+          "the appetite limit. The linkage is the point: a stressed breach "
+          "triggers the charge-off-rate limit's breach action (tighter "
+          "origination / pricing), per the dashboard._")
+        a("")
+        a("| Scenario | Charge-off rate | RAG vs limit | Implied charge-off ($) | Additional vs baseline ($) |")
+        a("|---|---|---|---|---|")
+        for _, r in stress.iterrows():
+            add = _fmt_money(r["additional_vs_baseline"]) if pd.notna(r["additional_vs_baseline"]) else "—"
+            a(f"| {r['scenario']} | {_fmt_pct(r['chargeoff_rate'])} | "
+              f"{_RAG_BADGE.get(r['rag_vs_limit'], r['rag_vs_limit'])} | "
+              f"{_fmt_money(r['implied_chargeoff_exposure'])} | {add} |")
+        a("")
+        if breached:
+            a("> **Stress breaches appetite** → escalate to the charge-off-rate "
+              "limit owner; review origination credit policy and pricing (see "
+              "the dashboard actions table).")
+        else:
+            a("> Stressed rate stays within appetite — no escalation triggered, "
+              "but the headroom is monitored.")
+        a("")
 
     a("---")
     a("")

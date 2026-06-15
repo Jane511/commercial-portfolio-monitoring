@@ -53,6 +53,7 @@ OUTPUT_TABLES = {
     "leading_lagging_map": TABLES_DIR / "07_leading_lagging_map.csv",
     "origination_trend": TABLES_DIR / "07_origination_trend.csv",
     "vintage_over_vintage_early_mob": TABLES_DIR / "07_vintage_over_vintage_early_mob.csv",
+    "stress_scenario": TABLES_DIR / "08_stress_scenario.csv",
 }
 
 # --------------------------------------------------------------------------- #

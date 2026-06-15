@@ -18,6 +18,7 @@ from . import leading
 from . import problem_exposure as pe
 from . import report as rpt
 from . import risk_appetite as ra
+from . import stress as stress_mod
 from . import transitions, vintage
 from .base_table import build_base_table
 from .charts import (
@@ -103,13 +104,16 @@ def run_pipeline(
     leading_map = leading.metric_classification()
     origination = leading.origination_trend(base, config=cfg)
     vov_early_mob = leading.vintage_over_vintage_early_mob(base, config=cfg)
+
+    # --- 08 Stress scenario feeding the limits ---------------------------- #
+    stress_tbl = stress_mod.stress_scenario(base, config=cfg)
     report_md = rpt.build_markdown_report(
         dq=dq, hhi=conc_hhi, co_industry=co_industry, co_vintage=co_vintage,
         early_warning=early, stage_proxy=stage_proxy,
         problem_exposure=pe_overview,
         appetite=appetite, appetite_actions=appetite_actions,
         leading_map=leading_map, origination=origination,
-        vov_early_mob=vov_early_mob,
+        vov_early_mob=vov_early_mob, stress=stress_tbl,
     )
 
     results = {
@@ -134,6 +138,7 @@ def run_pipeline(
         "leading_lagging_map": leading_map,
         "origination_trend": origination,
         "vintage_over_vintage_early_mob": vov_early_mob,
+        "stress_scenario": stress_tbl,
     }
 
     if persist:
