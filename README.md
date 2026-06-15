@@ -191,3 +191,7 @@ portfolio monitoring on real, public data.
 
 _Built with pandas + matplotlib. Monitoring outputs only — not regulated
 disclosure or credit advice._
+
+## License
+
+Released under the MIT License — free to read, run, and reuse with attribution.
