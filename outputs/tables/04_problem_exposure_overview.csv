@@ -1,0 +1,5 @@
+status,status_label,loan_count,exposure,count_share,exposure_share,signal
+DELINQ,Delinquent,1130,525298418.0,0.00104,0.001825,Leading — pre-charge-off problem exposure
+PSTDUE,Past due,575,345098500.0,0.000529,0.001199,Leading — pre-charge-off problem exposure
+LIQUID,In liquidation,2889,1523132085.0,0.002658,0.005292,Leading — near-certain future charge-off
+ALL_PROBLEM,Total problem-exposure pipeline,4594,2393529003.0,0.004226,0.008316,Leading — pre-charge-off pipeline (vs lagging charge-off)

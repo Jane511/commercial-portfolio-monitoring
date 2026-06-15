@@ -44,6 +44,8 @@ OUTPUT_TABLES = {
     "vintage_curves": TABLES_DIR / "03_vintage_cohort_curves.csv",
     "loan_age_transitions": TABLES_DIR / "04_loan_age_transitions.csv",
     "early_warning": TABLES_DIR / "04_early_warning_segments.csv",
+    "problem_exposure_overview": TABLES_DIR / "04_problem_exposure_overview.csv",
+    "problem_exposure_by_industry": TABLES_DIR / "04_problem_exposure_by_industry.csv",
     "stage_proxy": TABLES_DIR / "05_stage_proxy_summary.csv",
     "aps330_credit_quality": TABLES_DIR / "05_aps330_style_credit_quality.csv",
 }

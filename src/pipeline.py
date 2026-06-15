@@ -14,6 +14,7 @@ from pathlib import Path
 
 from . import chargeoff as co
 from . import concentration as conc
+from . import problem_exposure as pe
 from . import report as rpt
 from . import transitions, vintage
 from .base_table import build_base_table
@@ -83,6 +84,8 @@ def run_pipeline(
     _log.info("Step 5/6 — Loan-age transitions & early-warning segments")
     age_transition = transitions.loan_age_transition(base)
     early = flag_high_risk_segments(base, config=cfg)
+    pe_overview = pe.problem_exposure_overview(base, config=cfg)
+    pe_by_industry = pe.problem_exposure_by(base, "industry")
 
     # --- 05 Monitoring pack / report -------------------------------------- #
     _log.info("Step 6/6 — Stage proxy, APS 330-style table & report")
@@ -91,6 +94,7 @@ def run_pipeline(
     report_md = rpt.build_markdown_report(
         dq=dq, hhi=conc_hhi, co_industry=co_industry, co_vintage=co_vintage,
         early_warning=early, stage_proxy=stage_proxy,
+        problem_exposure=pe_overview,
     )
 
     results = {
@@ -106,6 +110,8 @@ def run_pipeline(
         "vintage_curves": vintage_curves.reset_index(),
         "loan_age_transitions": age_transition,
         "early_warning": early,
+        "problem_exposure_overview": pe_overview,
+        "problem_exposure_by_industry": pe_by_industry,
         "stage_proxy": stage_proxy,
         "aps330_credit_quality": aps330,
     }

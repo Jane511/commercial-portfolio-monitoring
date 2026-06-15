@@ -29,6 +29,7 @@ def build_base_table(df: pd.DataFrame, config: dict | None = None) -> pd.DataFra
     """Return the monitoring base table from the cleaned loan frame."""
     cfg = config or load_config()
     default_statuses = set(cfg["universe"]["default_statuses"])
+    problem_statuses = set(cfg["universe"].get("problem_exposure_statuses", []))
     seasoned_max_fy = int(cfg["universe"]["fully_seasoned_max_fy"])
     bands = cfg["size_bands"]
 
@@ -37,8 +38,12 @@ def build_base_table(df: pd.DataFrame, config: dict | None = None) -> pd.DataFra
     # Vintage = approval fiscal-year cohort.
     out["vintage"] = out["approvalfy"].astype("Int64")
 
-    # Default flag (charge-off).
+    # Default flag (charge-off) — the realised, *lagging* loss point.
     out["is_default"] = out["loanstatus"].isin(default_statuses)
+
+    # Problem-exposure flag (DELINQ / PSTDUE / LIQUID) — the *leading*,
+    # pre-charge-off early-warning pipeline (APS 220 para 79).
+    out["is_problem_exposure"] = out["loanstatus"].isin(problem_statuses)
 
     # Size band on gross approval.
     out["size_band"] = _size_band(out["grossapproval"], bands["edges"], bands["labels"])
@@ -54,9 +59,10 @@ def build_base_table(df: pd.DataFrame, config: dict | None = None) -> pd.DataFra
     out["fully_seasoned"] = out["vintage"] <= seasoned_max_fy
 
     _log.info(
-        "Base table built: %d loans, %d vintages (%s-%s), %d defaults",
+        "Base table built: %d loans, %d vintages (%s-%s), %d defaults, "
+        "%d problem exposures",
         len(out), out["vintage"].nunique(),
         int(out["vintage"].min()), int(out["vintage"].max()),
-        int(out["is_default"].sum()),
+        int(out["is_default"].sum()), int(out["is_problem_exposure"].sum()),
     )
     return out

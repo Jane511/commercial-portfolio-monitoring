@@ -25,7 +25,20 @@ universe:
 
   # Statuses treated as DEFAULT (charge-off). Per the build spec the default
   # definition is LoanStatus == CHGOFF. Kept as a list so it is easy to extend.
+  #
+  # CAVEAT (APS 220 para 79): charge-off is a *lagging* write-off point, NOT the
+  # APS 220 reference default (90+ days past due / unlikely-to-pay). It is kept
+  # for the realised-loss analytics, but the problem-exposure statuses below are
+  # the forward-looking / pre-charge-off signals used for early action.
   default_statuses: ["CHGOFF"]
+
+  # Pre-charge-off PROBLEM-EXPOSURE statuses (APS 220 para 79 / APG 220 para 66).
+  # These are NOT counted as default, but they are the early-warning pipeline:
+  #   DELINQ  — delinquent
+  #   PSTDUE  — past due
+  #   LIQUID  — in liquidation (a near-certain future charge-off; leading signal)
+  # Surfaced as a problem-exposure layer feeding the early-warning dashboard.
+  problem_exposure_statuses: ["DELINQ", "PSTDUE", "LIQUID"]
 
   # Approval fiscal years considered "fully seasoned" — old enough that loan
   # outcomes are essentially final. Vintages after this are still shown but

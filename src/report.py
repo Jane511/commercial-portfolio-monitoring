@@ -62,6 +62,10 @@ def _fmt_pct(x: float) -> str:
     return f"{x:.1%}" if pd.notna(x) else "—"
 
 
+def _fmt_money(x: float) -> str:
+    return f"${x:,.0f}" if pd.notna(x) else "—"
+
+
 def build_markdown_report(
     dq: pd.DataFrame,
     hhi: pd.DataFrame,
@@ -69,8 +73,13 @@ def build_markdown_report(
     co_vintage: pd.DataFrame,
     early_warning: pd.DataFrame,
     stage_proxy: pd.DataFrame,
+    problem_exposure: pd.DataFrame | None = None,
 ) -> str:
-    """Assemble a short monitoring-pack report (Markdown) from key tables."""
+    """Assemble a short monitoring-pack report (Markdown) from key tables.
+
+    *problem_exposure* (CML-1) is optional so existing callers/tests keep
+    working; when supplied it adds the pre-charge-off early-warning layer.
+    """
     lines: list[str] = []
     a = lines.append
 
@@ -112,6 +121,14 @@ def build_markdown_report(
 
     a("## 4. Charge-off rate by vintage (approval-year cohort)")
     a("")
+    a("> **Default-definition note (APS 220 para 79).** Default here is "
+      "`LoanStatus == CHGOFF` — a *realised, lagging* write-off point. APS 220's "
+      "reference default is earlier (90+ days past due / unlikely-to-pay), so "
+      "this rate **understates** how many loans have already breached the "
+      "reference-default point. The pre-charge-off problem-exposure layer "
+      "(section 5b) is the SBA-feasible *leading* view; `IN LIQUIDATION` in "
+      "particular is a near-certain future charge-off.")
+    a("")
     a("| Vintage | Loans | Charge-off rate (count) | Fully seasoned |")
     a("|---|---|---|---|")
     for _, r in co_vintage.iterrows():
@@ -131,6 +148,25 @@ def build_markdown_report(
               f"{int(r['loan_count']):,} | {_fmt_pct(r['chargeoff_rate'])} | "
               f"{r['rate_multiple']:.1f}x | {r['severity']} |")
     a("")
+
+    if problem_exposure is not None and not problem_exposure.empty:
+        a("## 5b. Problem-exposure layer (pre-charge-off early warning)")
+        a("")
+        a("_APS 220 para 79 / APG 220 para 66 — act early on **problem "
+          "exposures** using **forward-looking** signals. These statuses are "
+          "**not** counted as default (default = charge-off), but they are the "
+          "pipeline that precedes charge-off. `IN LIQUIDATION` is a near-certain "
+          "future charge-off — a leading signal._")
+        a("")
+        a("| Status | Meaning | Loans | Exposure ($) | Share of book ($) | Signal |")
+        a("|---|---|---|---|---|---|")
+        for _, r in problem_exposure.iterrows():
+            bold = r["status"] == "ALL_PROBLEM"
+            label = f"**{r['status_label']}**" if bold else r["status_label"]
+            a(f"| {r['status']} | {label} | {int(r['loan_count']):,} | "
+              f"{_fmt_money(r['exposure'])} | {_fmt_pct(r['exposure_share'])} | "
+              f"{r['signal']} |")
+        a("")
 
     a("## 6. Stage proxy (performing vs defaulted)")
     a("")

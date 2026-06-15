@@ -13,6 +13,7 @@ import pytest
 
 from src import chargeoff as co
 from src import concentration as conc
+from src import problem_exposure as pe
 from src import report as rpt
 from src import transitions, vintage
 from src.base_table import build_base_table
@@ -216,6 +217,52 @@ def test_early_warning_flags_are_elevated(base, cfg):
         thresh = cfg["early_warning"]["elevated_multiple"]
         assert (flagged["rate_multiple"] >= thresh).all()
         assert set(flagged["severity"]) <= {"Elevated", "High"}
+
+
+# --------------------------------------------------------------------------- #
+# Problem-exposure layer (CML-1)                                              #
+# --------------------------------------------------------------------------- #
+@pytest.fixture(scope="module")
+def problem_base(cfg):
+    """A tiny cleaned frame carrying the pre-charge-off problem statuses."""
+    statuses = (["CHGOFF"] * 10 + ["P I F"] * 70 + ["DELINQ"] * 8
+                + ["PSTDUE"] * 5 + ["LIQUID"] * 7)
+    n = len(statuses)
+    raw = pd.DataFrame({
+        "program": " 7A", "borrname": [f"B{i}" for i in range(n)],
+        "borrstate": "CA", "bankname": "Bank A",
+        "grossapproval": 100_000, "sbaguaranteedapproval": 75_000,
+        "approvaldate": "01/15/2010", "approvalfy": 2010, "terminmonths": 84,
+        "naicscode": "722110", "naicsdescription": "d", "projectstate": "CA",
+        "businesstype": "CORP", "jobssupported": 3, "loanstatus": statuses,
+        "paidinfulldate": "", "chargeoffdate": "",
+        "grosschargeoffamount": [60_000 if s == "CHGOFF" else 0 for s in statuses],
+    })
+    return build_base_table(clean(raw, config=cfg), config=cfg)
+
+
+def test_problem_exposure_flag_excludes_default(problem_base):
+    # Problem-exposure and default are disjoint flags.
+    assert not (problem_base["is_problem_exposure"] & problem_base["is_default"]).any()
+    # DELINQ + PSTDUE + LIQUID = 20 problem exposures in the fixture.
+    assert int(problem_base["is_problem_exposure"].sum()) == 20
+
+
+def test_problem_exposure_overview(problem_base, cfg):
+    ov = pe.problem_exposure_overview(problem_base, config=cfg)
+    # One row per problem status plus a total row.
+    assert set(["DELINQ", "PSTDUE", "LIQUID", "ALL_PROBLEM"]) <= set(ov["status"])
+    total = ov.loc[ov["status"] == "ALL_PROBLEM", "loan_count"].iloc[0]
+    assert total == 20
+    # LIQUID flagged as a near-certain future charge-off (leading) signal.
+    liquid_signal = ov.loc[ov["status"] == "LIQUID", "signal"].iloc[0]
+    assert "near-certain" in liquid_signal.lower()
+
+
+def test_problem_exposure_by_segment(problem_base):
+    seg = pe.problem_exposure_by(problem_base, "industry")
+    assert {"problem_rate", "chargeoff_rate"} <= set(seg.columns)
+    assert (seg["problem_rate"].between(0, 1)).all()
 
 
 # --------------------------------------------------------------------------- #

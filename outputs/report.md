@@ -44,6 +44,8 @@ _Real public SBA 7(a) loan-level data. Monitoring outputs only — not a regulat
 
 ## 4. Charge-off rate by vintage (approval-year cohort)
 
+> **Default-definition note (APS 220 para 79).** Default here is `LoanStatus == CHGOFF` — a *realised, lagging* write-off point. APS 220's reference default is earlier (90+ days past due / unlikely-to-pay), so this rate **understates** how many loans have already breached the reference-default point. The pre-charge-off problem-exposure layer (section 5b) is the SBA-feasible *leading* view; `IN LIQUIDATION` in particular is a near-certain future charge-off.
+
 | Vintage | Loans | Charge-off rate (count) | Fully seasoned |
 |---|---|---|---|
 | 2000 | 37,600 | 4.7% | yes |
@@ -86,6 +88,17 @@ _Real public SBA 7(a) loan-level data. Monitoring outputs only — not a regulat
 | Construction | 2007 | <=50k | 6,924 | 32.5% | 2.4x | High |
 | Finance & Insurance | 2008 | <=50k | 716 | 32.4% | 2.4x | High |
 | Information | 2008 | <=50k | 676 | 32.4% | 2.4x | High |
+
+## 5b. Problem-exposure layer (pre-charge-off early warning)
+
+_APS 220 para 79 / APG 220 para 66 — act early on **problem exposures** using **forward-looking** signals. These statuses are **not** counted as default (default = charge-off), but they are the pipeline that precedes charge-off. `IN LIQUIDATION` is a near-certain future charge-off — a leading signal._
+
+| Status | Meaning | Loans | Exposure ($) | Share of book ($) | Signal |
+|---|---|---|---|---|---|
+| DELINQ | Delinquent | 1,130 | $525,298,418 | 0.2% | Leading — pre-charge-off problem exposure |
+| PSTDUE | Past due | 575 | $345,098,500 | 0.1% | Leading — pre-charge-off problem exposure |
+| LIQUID | In liquidation | 2,889 | $1,523,132,085 | 0.5% | Leading — near-certain future charge-off |
+| ALL_PROBLEM | **Total problem-exposure pipeline** | 4,594 | $2,393,529,003 | 0.8% | Leading — pre-charge-off pipeline (vs lagging charge-off) |
 
 ## 6. Stage proxy (performing vs defaulted)
 
