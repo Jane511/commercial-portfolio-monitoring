@@ -25,7 +25,7 @@ intentional and not duplicated here.
 
 No download or run needed — everything below is committed real output:
 
-- 📄 **[Monitoring pack report](outputs/report.md)** — the one-page credit-committee summary.
+- 📄 **[Monitoring pack report](outputs/reports/report.md)** — the one-page credit-committee summary.
 - 📊 **[Charts](outputs/charts/)** — concentration, charge-off, vintage cohort curves.
 - 📋 **[Result tables](outputs/tables/)** — one CSV per analysis step.
 - 📓 **Notebooks** — [00 Load & clean](notebooks/00_load_and_clean.ipynb) ·
@@ -40,7 +40,7 @@ To reproduce locally:
 ```bash
 pip install -r requirements.txt
 # place the SBA 7(a) FOIA CSVs in data/input/  (see Data sources & provenance)
-python -m src.run_pipeline          # writes outputs/tables, outputs/charts, outputs/report.md
+python -m src.run_pipeline          # writes outputs/tables, outputs/charts, outputs/reports/report.md
 python -m src.build_notebooks       # (optional) rebuild + execute notebooks 00–05
 pytest                              # fast unit tests on a synthetic fixture
 ```
@@ -60,7 +60,7 @@ pytest                              # fast unit tests on a synthetic fixture
 | Default definition (APS 220: 90+ DPD / UTP) | `default = charge-off` (CHGOFF), labelled a **lagging** write-off point vs the 90+DPD/UTP reference; a pre-charge-off **problem-exposure / early-warning** layer (DELINQ / PSTDUE / IN LIQUIDATION) sits ahead of it — [src/problem_exposure.py](src/problem_exposure.py), nb 04 |
 | Concentration limits (APS 220 para 35) | HHI + top-N by **industry / state / single-lender (top-20)**, tied to the appetite limits — [src/concentration.py](src/concentration.py), nb 02 |
 | Risk appetite + limits (APS 220 para 20/35) | config-driven appetite table — amber/red, owner, breach action, review cycle — [config.yaml](config.yaml), [src/risk_appetite.py](src/risk_appetite.py) |
-| Board MI / RAG dashboard (APG 220 para 65) | the pack opens with a `metric \| value \| limit \| RAG` dashboard + an actions table for amber/red items — [src/report.py](src/report.py), [outputs/report.md](outputs/report.md) |
+| Board MI / RAG dashboard (APG 220 para 65) | the pack opens with a `metric \| value \| limit \| RAG` dashboard + an actions table for amber/red items — [src/report.py](src/report.py), [outputs/reports/report.md](outputs/reports/report.md) |
 | Leading vs lagging (APG 220 para 66) | every metric labelled; origination-mix trend + vintage-over-vintage early-MOB leading views — [src/leading.py](src/leading.py), nb 03 |
 | Charge-off & vintage cohort analytics | charge-off by industry / size / vintage + cumulative cohort curves — [src/chargeoff.py](src/chargeoff.py), [src/vintage.py](src/vintage.py), nb 03 |
 | Stress → limits (APS 220 para 73) | a crisis-era charge-off multiplier (the 2006–08 cohorts) re-tested against the appetite limits — [src/stress.py](src/stress.py) |
@@ -85,27 +85,27 @@ pytest                              # fast unit tests on a synthetic fixture
 ## Key charts
 
 *All charts are regenerated from the committed result tables in [outputs/tables/](outputs/tables/)
-by [reports/make_figures.py](reports/make_figures.py) — aggregated portfolio metrics only.*
+by [tools/make_figures.py](tools/make_figures.py) — aggregated portfolio metrics only.*
 
 ### 1. Charge-off rate by approval-year vintage
-![Charge-off rate by vintage spiking to ~29% for the 2007 cohort](reports/figures/chargeoff_by_vintage.png)
+![Charge-off rate by vintage spiking to ~29% for the 2007 cohort](outputs/charts/chargeoff_by_vintage.png)
 
 **What this shows:** the eventual charge-off rate of each origination-year cohort; grey points are recent vintages not yet fully seasoned.
 **Why it matters:** the 2005–2008 crisis-origination cohorts charged off at ~24–29%, roughly **5× the calm-year cohorts** — proof that *when* a loan was written drives its loss.
 
 ### 2. Exposure concentration by industry
-![Top 10 industries by exposure share with industry HHI of 0.10](reports/figures/concentration_by_industry.png)
+![Top 10 industries by exposure share with industry HHI of 0.10](outputs/charts/concentration_by_industry.png)
 
 **What this shows:** the ten industries holding the most exposure, with the portfolio's industry concentration (HHI) and top-10 share.
 **Why it matters:** concentration is itself a risk — this is the first slide a credit committee reads, and an HHI of 0.10 (Moderate) with the top-10 holding ~87% says where a sector shock would land.
 
 ### 3. Charge-off rate by industry
-![Top 10 industries by charge-off rate](reports/figures/chargeoff_by_industry.png)
+![Top 10 industries by charge-off rate](outputs/charts/chargeoff_by_industry.png)
 
 **What this shows:** the industries with the highest charge-off rates by loan count.
 **Why it matters:** read together with concentration, it flags where high exposure meets high loss rate — the segments to watch and price for.
 
-*Full methodology and the monitoring pack: see the [notebooks](notebooks/) and [outputs/report.md](outputs/report.md).*
+*Full methodology and the monitoring pack: see the [notebooks](notebooks/) and [outputs/reports/report.md](outputs/reports/report.md).*
 
 ---
 
@@ -154,8 +154,9 @@ src/
   pipeline.py            orchestrates everything → outputs/
   run_pipeline.py        CLI entry point (python -m src.run_pipeline)
   build_notebooks.py     (re)generate + execute notebooks 00–05
+tools/make_figures.py    regenerate README charts into outputs/charts/
 notebooks/               00–05, each with a plain-English summary + one results table
-outputs/                 committed snapshots: tables/, charts/, report.md
+outputs/                 committed snapshots: tables/, charts/, reports/
 docs/                    data dictionary, methodology, assumptions, governance
 tests/                   fast unit tests on a synthetic fixture (no raw data needed)
 ```

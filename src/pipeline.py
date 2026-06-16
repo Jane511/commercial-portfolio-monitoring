@@ -49,7 +49,7 @@ def run_pipeline(
     """Run the full pipeline; return a dict of every result table.
 
     When *persist* is True, tables are written under ``outputs/tables/``,
-    charts under ``outputs/charts/``, and the report to ``outputs/report.md``.
+    charts under ``outputs/charts/``, and the report to ``outputs/reports/report.md``.
     """
     t0 = time.perf_counter()
     cfg = load_config(config_path)
@@ -145,8 +145,10 @@ def run_pipeline(
         for key, path in OUTPUT_TABLES.items():
             target = tables_dir / path.name if output_dir else path
             save_dataframe(results[key], target)
-        (out_path / "report.md").write_text(report_md, encoding="utf-8")
-        _log.info("Report written -> %s", out_path / "report.md")
+        reports_dir = out_path / "reports"
+        reports_dir.mkdir(parents=True, exist_ok=True)
+        (reports_dir / "report.md").write_text(report_md, encoding="utf-8")
+        _log.info("Report written -> %s", reports_dir / "report.md")
 
         if make_charts:
             _save_charts(

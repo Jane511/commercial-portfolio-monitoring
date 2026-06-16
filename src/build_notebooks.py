@@ -230,7 +230,7 @@ nb04 = notebook([
 nb05 = notebook([
     md("# 05 — Monitoring pack / report\n\n"
        "**Plain English:** We pull the key tables together into a short, "
-       "disclosure-style monitoring pack and write it to `outputs/report.md`.\n\n"
+       "disclosure-style monitoring pack and write it to `outputs/reports/report.md`.\n\n"
        "Includes a coarse **performing-vs-defaulted stage proxy** and a "
        "credit-quality table laid out in **APS 330-style disclosure format**.\n\n"
        "> ⚠️ **Labelling:** these are *monitoring outputs on public SBA data*, "
@@ -259,9 +259,10 @@ nb05 = notebook([
          "    early_warning=flag_high_risk_segments(base, config=CFG),\n"
          "    stage_proxy=stage,\n"
          ")\n"
-         "(ROOT / 'outputs' / 'report.md').write_text(md_report, encoding='utf-8')\n"
+         "(ROOT / 'outputs' / 'reports').mkdir(parents=True, exist_ok=True)\n"
+         "(ROOT / 'outputs' / 'reports' / 'report.md').write_text(md_report, encoding='utf-8')\n"
          "print(md_report[:1200])"),
-    md("**Read-out:** `outputs/report.md` is the one-page pack a credit committee "
+    md("**Read-out:** `outputs/reports/report.md` is the one-page pack a credit committee "
        "would skim — portfolio size, concentration, worst industries/vintages, "
        "flagged segments, and the performing/defaulted split."),
 ])

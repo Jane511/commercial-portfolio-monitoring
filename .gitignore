@@ -25,5 +25,5 @@ logs/
 tests/_artifacts/
 tests/.tmp_pytest/
 
-# NOTE: outputs/ (tables, charts, report.md) is intentionally NOT ignored —
+# NOTE: outputs/ (tables, charts, reports) is intentionally NOT ignored —
 # those committed snapshots are what makes the repo self-demonstrating.
