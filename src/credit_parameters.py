@@ -136,22 +136,34 @@ def credit_risk_parameters_by_product(df: pd.DataFrame) -> pd.DataFrame:
 
 def credit_risk_parameters_stress(df: pd.DataFrame,
                                   config: dict | None = None) -> pd.DataFrame:
-    """Stress the parameters: through-the-cycle book vs the 2006-08 downturn.
+    """Stress the parameters using the two downturn severities the data contains.
 
-    The financial-crisis vintages the data already contains are used as a
-    realised, data-grounded downturn scenario. For each parameter we report the
-    through-the-cycle (whole-book) value, the crisis-cohort value, and the
-    implied **stress multiplier** (crisis / TTC). PD and LGD both rise in the
-    downturn, so EL rises multiplicatively — a downturn-PD / downturn-LGD view
-    for capital and limit-setting (the crisis vintages are fully seasoned, so
-    these are near-final outcomes).
+    The SBA data (FY2000-2019) holds one macro downturn — the 2008 financial
+    crisis — but it supports a two-level stress *ladder* read straight off the
+    realised cohorts:
+
+      * **Adverse / downturn** — the crisis cohort pooled (config
+        ``stress.crisis_vintages``, 2006-08).
+      * **Severe** — the single worst seasoned vintage (the peak of the crisis,
+        auto-detected by charge-off rate — 2007).
+
+    For each parameter we report the through-the-cycle (whole-book) value and
+    both stressed values with their multiplier vs TTC. PD and LGD both rise, so
+    EL rises multiplicatively — the downturn-PD / downturn-LGD inputs for
+    stressed pricing and capital. (Crisis vintages are fully seasoned, so these
+    are near-final outcomes.)
     """
     cfg = config or load_config()
     crisis_vintages = sorted(set(cfg["stress"]["crisis_vintages"]))
 
     ttc = _parameter_frame(df, None, "ttc").iloc[0]
-    crisis = _parameter_frame(
-        df[df["vintage"].isin(crisis_vintages)], None, "crisis").iloc[0]
+    downturn = _parameter_frame(
+        df[df["vintage"].isin(crisis_vintages)], None, "downturn").iloc[0]
+
+    # Severe = the single worst seasoned vintage by charge-off rate (auto).
+    seasoned = df[df["fully_seasoned"]]
+    peak_vintage = int(seasoned.groupby("vintage")["is_default"].mean().idxmax())
+    severe = _parameter_frame(df[df["vintage"] == peak_vintage], None, "severe").iloc[0]
 
     specs = [
         ("pd_count", "PD — default rate (obligor-weighted)"),
@@ -162,22 +174,24 @@ def credit_risk_parameters_stress(df: pd.DataFrame,
     ]
     rows = []
     for key, label in specs:
-        b, s = float(ttc[key]), float(crisis[key])
+        b, d, s = float(ttc[key]), float(downturn[key]), float(severe[key])
         rows.append({
             "metric_key": key,
             "parameter": label,
             "through_the_cycle": round(b, 4),
-            "crisis_downturn": round(s, 4),
-            "stress_multiplier": round(s / b, 2) if b else float("nan"),
+            "adverse_downturn": round(d, 4),
+            "adverse_multiplier": round(d / b, 2) if b else float("nan"),
+            "severe": round(s, 4),
+            "severe_multiplier": round(s / b, 2) if b else float("nan"),
         })
     out = pd.DataFrame(rows)
-    out["crisis_vintages"] = ", ".join(str(v) for v in crisis_vintages)
+    out["adverse_vintages"] = ", ".join(str(v) for v in crisis_vintages)
+    out["severe_vintage"] = peak_vintage
     _log.info(
-        "Parameter stress (crisis %s): PD %.1f%%->%.1f%%, LGD %.1f%%->%.1f%%, "
-        "EL %.1f%%->%.1f%%", crisis_vintages,
-        ttc["pd_count"] * 100, crisis["pd_count"] * 100,
-        ttc["lgd"] * 100, crisis["lgd"] * 100,
-        ttc["el_rate"] * 100, crisis["el_rate"] * 100,
+        "Parameter stress — EL rate: TTC %.1f%% -> adverse %.1f%% (%s) -> "
+        "severe %.1f%% (%d peak)",
+        ttc["el_rate"] * 100, downturn["el_rate"] * 100, crisis_vintages,
+        severe["el_rate"] * 100, peak_vintage,
     )
     return out
 

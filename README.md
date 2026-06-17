@@ -143,26 +143,37 @@ cost, opex and a capital charge. It varies ~9× across sectors:
 
 ## 4. Stress test — downturn PD / LGD / EL
 
-The 2006–08 financial-crisis vintages the data already contains are a **realised
-downturn scenario**. Both **PD and LGD rise**, so EL rises multiplicatively —
-the downturn-PD / downturn-LGD inputs for stressed pricing and capital
+The SBA data (FY2000–2019) contains **one** macro downturn — the 2008 financial
+crisis — but it supports a **two-level stress ladder** read straight off the
+realised cohorts (both are fully seasoned, so near-final):
+
+- **Adverse** = the crisis cohort pooled (2006–08)
+- **Severe** = the single worst vintage, the peak of the crisis (**2007**, auto-detected)
+
+Both **PD and LGD rise**, so EL rises multiplicatively
 ([09_…stress.csv](outputs/tables/09_credit_risk_parameters_stress.csv)):
 
-| Parameter | Through-the-cycle | Crisis / downturn (2006–08) | Stress multiplier |
-|---|---:|---:|---:|
-| PD — default rate (obligor-weighted) | 12.2% | 25.9% | **2.1×** |
-| PD — default rate (exposure-weighted) | 7.7% | 21.9% | **2.8×** |
-| LGD — loss given default | 64.0% | 70.0% | **1.1×** |
-| EAD — avg exposure per loan | $264,769 | $154,065 | 0.6× |
-| **EL rate — expected loss / exposure** | **4.9%** | **15.3%** | **3.1×** |
+| Parameter | Through-the-cycle | Adverse (2006–08) | × | Severe (2007) | × |
+|---|---:|---:|---:|---:|---:|
+| PD — default rate (obligor-weighted) | 12.2% | 25.9% | **2.1×** | 28.8% | **2.4×** |
+| PD — default rate (exposure-weighted) | 7.7% | 21.9% | **2.8×** | 24.4% | **3.2×** |
+| LGD — loss given default | 64.0% | 70.0% | **1.1×** | 71.9% | **1.1×** |
+| EAD — avg exposure per loan | $264,769 | $154,065 | 0.6× | $142,500 | 0.5× |
+| **EL rate — expected loss / exposure** | **4.9%** | **15.3%** | **3.1×** | **17.6%** | **3.6×** |
 
-![Parameter stress — downturn vs through-the-cycle](outputs/charts/parameters_stress.png)
+![Parameter stress ladder — adverse & severe vs through-the-cycle](outputs/charts/parameters_stress.png)
 
-The headline: **expected loss roughly triples (4.9% → 15.3%)** in a downturn,
-driven mostly by PD doubling with LGD adding ~9% on top. (EAD *falls* — crisis
-cohorts were smaller loans — so it is not a stress driver; exposure is fixed at
-approval.) This feeds the limit-linked charge-off stress in report §9 and
-[08_stress_scenario.csv](outputs/tables/08_stress_scenario.csv).
+The headline: **expected loss roughly triples** in a downturn (4.9% → 15.3%
+adverse → 17.6% severe), driven mostly by PD doubling with LGD adding ~9–12% on
+top. (EAD *falls* — crisis cohorts were smaller loans — so it is not a stress
+driver; exposure is fixed at approval.)
+
+> **Two stress views in the repo, by design.** This *parameter* stress (PD/LGD/EAD/EL,
+> whole-book TTC baseline) sits alongside the limit-linked **charge-off-rate
+> stress** in report §9 / [08_stress_scenario.csv](outputs/tables/08_stress_scenario.csv),
+> which uses a *seasoned-only* baseline (13.5%) so it can be re-tested against the
+> risk-appetite charge-off limit. Same crisis, two lenses — pricing/ECL inputs
+> here, appetite-limit breach there.
 
 ---
 

@@ -329,11 +329,13 @@ def test_credit_parameters_by_structure(base):
 def test_credit_parameters_stress(base, cfg):
     out = cp.credit_risk_parameters_stress(base, config=cfg)
     assert {"pd_count", "lgd", "el_rate"} <= set(out["metric_key"])
-    assert {"through_the_cycle", "crisis_downturn", "stress_multiplier"} <= set(out.columns)
-    # Crisis cohorts default worse → PD and EL multipliers exceed 1 in the fixture.
-    pd_row = out.set_index("metric_key").loc["pd_count"]
-    assert pd_row["crisis_downturn"] > pd_row["through_the_cycle"]
-    assert out.set_index("metric_key").loc["el_rate", "stress_multiplier"] > 1.0
+    assert {"through_the_cycle", "adverse_downturn", "adverse_multiplier",
+            "severe", "severe_multiplier"} <= set(out.columns)
+    s = out.set_index("metric_key")
+    # Crisis cohorts default worse than the book; severe (peak) >= adverse (pooled).
+    assert s.loc["pd_count", "adverse_downturn"] > s.loc["pd_count", "through_the_cycle"]
+    assert s.loc["el_rate", "adverse_multiplier"] > 1.0
+    assert s.loc["el_rate", "severe"] >= s.loc["el_rate", "adverse_downturn"]
 
 
 # --------------------------------------------------------------------------- #

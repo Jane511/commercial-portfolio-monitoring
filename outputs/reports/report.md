@@ -255,15 +255,15 @@ _Realised, **through-the-cycle** parameters read off the FY2000-2019 outcome dat
 | Collateral | Secured | 436,969 | 8.8% | 62.9% | $410,653 | 3.4% |
 | Collateral | Unsecured | 650,050 | 14.5% | 64.8% | $166,705 | 7.5% |
 
-**10d. Parameter stress test — through-the-cycle vs the downturn (2006, 2007, 2008).** The financial-crisis vintages are a realised, data-grounded downturn: **both PD and LGD rise**, so EL rises multiplicatively. These are the downturn-PD / downturn-LGD inputs for stressed pricing and capital:
+**10d. Parameter stress test — the two downturn severities in the data.** The SBA data holds one macro downturn (the 2008 crisis) but supports a two-level stress ladder read off realised cohorts: **adverse** = the crisis cohort pooled (2006, 2007, 2008); **severe** = the single worst vintage (2007, the peak). PD and LGD both rise, so EL rises multiplicatively — downturn-PD / downturn-LGD inputs for stressed pricing and capital:
 
-| Parameter | Through-the-cycle | Crisis / downturn | Stress multiplier |
-|---|---|---|---|
-| PD — default rate (obligor-weighted) | 12.2% | 25.9% | 2.13x |
-| PD — default rate (exposure-weighted) | 7.7% | 21.9% | 2.85x |
-| LGD — loss given default | 64.0% | 70.0% | 1.09x |
-| EAD — avg exposure per loan ($) | $264,769 | $154,065 | 0.58x |
-| EL rate — expected loss / exposure | 4.9% | 15.3% | 3.11x |
+| Parameter | Through-the-cycle | Adverse (2006, 2007, 2008) | × | Severe (2007) | × |
+|---|---|---|---|---|---|
+| PD — default rate (obligor-weighted) | 12.2% | 25.9% | 2.13x | 28.8% | 2.36x |
+| PD — default rate (exposure-weighted) | 7.7% | 21.9% | 2.85x | 24.4% | 3.18x |
+| LGD — loss given default | 64.0% | 70.0% | 1.09x | 71.9% | 1.12x |
+| EAD — avg exposure per loan ($) | $264,769 | $154,065 | 0.58x | $142,500 | 0.54x |
+| EL rate — expected loss / exposure | 4.9% | 15.3% | 3.11x | 17.6% | 3.57x |
 
 ## Notes — APS 330 / Pillar 3 & governance
 

@@ -1,6 +1,6 @@
-metric_key,parameter,through_the_cycle,crisis_downturn,stress_multiplier,crisis_vintages
-pd_count,PD — default rate (obligor-weighted),0.122,0.2594,2.13,"2006, 2007, 2008"
-pd_dollar,PD — default rate (exposure-weighted),0.0769,0.2188,2.85,"2006, 2007, 2008"
-lgd,LGD — loss given default,0.6401,0.6998,1.09,"2006, 2007, 2008"
-ead_avg,EAD — avg exposure per loan ($),264769.0,154065.0,0.58,"2006, 2007, 2008"
-el_rate,EL rate — expected loss / exposure,0.0492,0.1531,3.11,"2006, 2007, 2008"
+metric_key,parameter,through_the_cycle,adverse_downturn,adverse_multiplier,severe,severe_multiplier,adverse_vintages,severe_vintage
+pd_count,PD — default rate (obligor-weighted),0.122,0.2594,2.13,0.2882,2.36,"2006, 2007, 2008",2007
+pd_dollar,PD — default rate (exposure-weighted),0.0769,0.2188,2.85,0.2442,3.18,"2006, 2007, 2008",2007
+lgd,LGD — loss given default,0.6401,0.6998,1.09,0.719,1.12,"2006, 2007, 2008",2007
+ead_avg,EAD — avg exposure per loan ($),264769.0,154065.0,0.58,142500.0,0.54,"2006, 2007, 2008",2007
+el_rate,EL rate — expected loss / exposure,0.0492,0.1531,3.11,0.1756,3.57,"2006, 2007, 2008",2007

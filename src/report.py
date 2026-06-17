@@ -421,20 +421,23 @@ def build_markdown_report(
             a("")
 
         if credit_params_stress is not None and not credit_params_stress.empty:
-            vint = credit_params_stress["crisis_vintages"].iloc[0]
-            a(f"**10d. Parameter stress test — through-the-cycle vs the downturn "
-              f"({vint}).** The financial-crisis vintages are a realised, "
-              "data-grounded downturn: **both PD and LGD rise**, so EL rises "
-              "multiplicatively. These are the downturn-PD / downturn-LGD inputs "
-              "for stressed pricing and capital:")
+            adv = credit_params_stress["adverse_vintages"].iloc[0]
+            sev = int(credit_params_stress["severe_vintage"].iloc[0])
+            a("**10d. Parameter stress test — the two downturn severities in the "
+              "data.** The SBA data holds one macro downturn (the 2008 crisis) "
+              "but supports a two-level stress ladder read off realised cohorts: "
+              f"**adverse** = the crisis cohort pooled ({adv}); **severe** = the "
+              f"single worst vintage ({sev}, the peak). PD and LGD both rise, so "
+              "EL rises multiplicatively — downturn-PD / downturn-LGD inputs for "
+              "stressed pricing and capital:")
             a("")
-            a("| Parameter | Through-the-cycle | Crisis / downturn | Stress multiplier |")
-            a("|---|---|---|---|")
+            a(f"| Parameter | Through-the-cycle | Adverse ({adv}) | × | Severe ({sev}) | × |")
+            a("|---|---|---|---|---|---|")
             for _, r in credit_params_stress.iterrows():
-                money = r["metric_key"] == "ead_avg"
-                fmt = _fmt_money if money else _fmt_pct
+                fmt = _fmt_money if r["metric_key"] == "ead_avg" else _fmt_pct
                 a(f"| {r['parameter']} | {fmt(r['through_the_cycle'])} | "
-                  f"{fmt(r['crisis_downturn'])} | {r['stress_multiplier']:.2f}x |")
+                  f"{fmt(r['adverse_downturn'])} | {r['adverse_multiplier']:.2f}x | "
+                  f"{fmt(r['severe'])} | {r['severe_multiplier']:.2f}x |")
             a("")
 
     a("## Notes — APS 330 / Pillar 3 & governance")

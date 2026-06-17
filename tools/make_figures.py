@@ -118,26 +118,32 @@ ax.set_title("Expected-loss rate by sector")
 ax.grid(axis="y", alpha=0)
 save(fig, "el_by_sector.png")
 
-# 6. Parameter stress — downturn vs through-the-cycle ------------------------
+# 6. Parameter stress — the two downturn severities in the data --------------
 st = pd.read_csv(TAB / "09_credit_risk_parameters_stress.csv").set_index("metric_key")
-vint = str(st["crisis_vintages"].iloc[0])
+adv_v = str(st["adverse_vintages"].iloc[0])
+sev_v = int(st["severe_vintage"].iloc[0])
 keys = ["pd_count", "lgd", "el_rate"]
 labels = ["PD\n(default rate)", "LGD\n(loss given default)", "EL rate\n(expected loss)"]
 ttc = [st.loc[k, "through_the_cycle"] * 100 for k in keys]
-cri = [st.loc[k, "crisis_downturn"] * 100 for k in keys]
-mult = [st.loc[k, "stress_multiplier"] for k in keys]
+adv = [st.loc[k, "adverse_downturn"] * 100 for k in keys]
+sev = [st.loc[k, "severe"] * 100 for k in keys]
+adv_m = [st.loc[k, "adverse_multiplier"] for k in keys]
+sev_m = [st.loc[k, "severe_multiplier"] for k in keys]
 x = np.arange(len(keys))
-w = 0.38
-fig, ax = plt.subplots(figsize=(8.8, 5.4))
-ax.bar(x - w / 2, ttc, w, label="through-the-cycle (FY2000–2019)", color=BLUE)
-b2 = ax.bar(x + w / 2, cri, w, label=f"crisis / downturn ({vint})", color=RED)
-for xi, c, m in zip(x, cri, mult):
-    ax.text(xi + w / 2, c, f"{m:.1f}×", ha="center", va="bottom", fontsize=11, fontweight="bold")
+w = 0.27
+fig, ax = plt.subplots(figsize=(9.6, 5.6))
+ax.bar(x - w, ttc, w, label="through-the-cycle (FY2000–2019)", color=BLUE)
+ax.bar(x, adv, w, label=f"adverse — crisis cohort ({adv_v})", color="#ef8a62")
+ax.bar(x + w, sev, w, label=f"severe — peak vintage ({sev_v})", color=RED)
+for xi, v, m in zip(x, adv, adv_m):
+    ax.text(xi, v, f"{m:.1f}×", ha="center", va="bottom", fontsize=9.5)
+for xi, v, m in zip(x, sev, sev_m):
+    ax.text(xi + w, v, f"{m:.1f}×", ha="center", va="bottom", fontsize=9.5, fontweight="bold")
 ax.set_xticks(x)
 ax.set_xticklabels(labels)
 ax.set_ylabel("rate (%)")
-ax.set_title("Parameter stress test — downturn vs through-the-cycle")
-ax.legend(frameon=False)
+ax.set_title("Parameter stress ladder — adverse & severe vs through-the-cycle")
+ax.legend(frameon=False, fontsize=10)
 ax.grid(axis="x", alpha=0)
 save(fig, "parameters_stress.png")
 
