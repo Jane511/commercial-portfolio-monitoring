@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import pandas as pd
 
+from .config import load_config
 from .logger import get_logger
 
 _log = get_logger(__name__)
@@ -131,6 +132,54 @@ def credit_risk_parameters_by_product(df: pd.DataFrame) -> pd.DataFrame:
     """
     out = _parameter_frame(df, "product_type", "product_type")
     return out.sort_values("ead_total", ascending=False).reset_index(drop=True)
+
+
+def credit_risk_parameters_stress(df: pd.DataFrame,
+                                  config: dict | None = None) -> pd.DataFrame:
+    """Stress the parameters: through-the-cycle book vs the 2006-08 downturn.
+
+    The financial-crisis vintages the data already contains are used as a
+    realised, data-grounded downturn scenario. For each parameter we report the
+    through-the-cycle (whole-book) value, the crisis-cohort value, and the
+    implied **stress multiplier** (crisis / TTC). PD and LGD both rise in the
+    downturn, so EL rises multiplicatively — a downturn-PD / downturn-LGD view
+    for capital and limit-setting (the crisis vintages are fully seasoned, so
+    these are near-final outcomes).
+    """
+    cfg = config or load_config()
+    crisis_vintages = sorted(set(cfg["stress"]["crisis_vintages"]))
+
+    ttc = _parameter_frame(df, None, "ttc").iloc[0]
+    crisis = _parameter_frame(
+        df[df["vintage"].isin(crisis_vintages)], None, "crisis").iloc[0]
+
+    specs = [
+        ("pd_count", "PD — default rate (obligor-weighted)"),
+        ("pd_dollar", "PD — default rate (exposure-weighted)"),
+        ("lgd", "LGD — loss given default"),
+        ("ead_avg", "EAD — avg exposure per loan ($)"),
+        ("el_rate", "EL rate — expected loss / exposure"),
+    ]
+    rows = []
+    for key, label in specs:
+        b, s = float(ttc[key]), float(crisis[key])
+        rows.append({
+            "metric_key": key,
+            "parameter": label,
+            "through_the_cycle": round(b, 4),
+            "crisis_downturn": round(s, 4),
+            "stress_multiplier": round(s / b, 2) if b else float("nan"),
+        })
+    out = pd.DataFrame(rows)
+    out["crisis_vintages"] = ", ".join(str(v) for v in crisis_vintages)
+    _log.info(
+        "Parameter stress (crisis %s): PD %.1f%%->%.1f%%, LGD %.1f%%->%.1f%%, "
+        "EL %.1f%%->%.1f%%", crisis_vintages,
+        ttc["pd_count"] * 100, crisis["pd_count"] * 100,
+        ttc["lgd"] * 100, crisis["lgd"] * 100,
+        ttc["el_rate"] * 100, crisis["el_rate"] * 100,
+    )
+    return out
 
 
 def credit_risk_parameters_by_structure(df: pd.DataFrame) -> pd.DataFrame:

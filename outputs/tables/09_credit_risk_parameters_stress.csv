@@ -1,0 +1,6 @@
+metric_key,parameter,through_the_cycle,crisis_downturn,stress_multiplier,crisis_vintages
+pd_count,PD — default rate (obligor-weighted),0.122,0.2594,2.13,"2006, 2007, 2008"
+pd_dollar,PD — default rate (exposure-weighted),0.0769,0.2188,2.85,"2006, 2007, 2008"
+lgd,LGD — loss given default,0.6401,0.6998,1.09,"2006, 2007, 2008"
+ead_avg,EAD — avg exposure per loan ($),264769.0,154065.0,0.58,"2006, 2007, 2008"
+el_rate,EL rate — expected loss / exposure,0.0492,0.1531,3.11,"2006, 2007, 2008"

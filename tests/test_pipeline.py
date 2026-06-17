@@ -326,6 +326,16 @@ def test_credit_parameters_by_structure(base):
     assert {"Secured", "Unsecured"} <= set(out["segment"])
 
 
+def test_credit_parameters_stress(base, cfg):
+    out = cp.credit_risk_parameters_stress(base, config=cfg)
+    assert {"pd_count", "lgd", "el_rate"} <= set(out["metric_key"])
+    assert {"through_the_cycle", "crisis_downturn", "stress_multiplier"} <= set(out.columns)
+    # Crisis cohorts default worse → PD and EL multipliers exceed 1 in the fixture.
+    pd_row = out.set_index("metric_key").loc["pd_count"]
+    assert pd_row["crisis_downturn"] > pd_row["through_the_cycle"]
+    assert out.set_index("metric_key").loc["el_rate", "stress_multiplier"] > 1.0
+
+
 # --------------------------------------------------------------------------- #
 # Risk appetite & limits (CML-2)                                              #
 # --------------------------------------------------------------------------- #

@@ -116,6 +116,7 @@ def run_pipeline(
     credit_params_industry = cp.credit_risk_parameters_by_industry(base)
     credit_params_product = cp.credit_risk_parameters_by_product(base)
     credit_params_structure = cp.credit_risk_parameters_by_structure(base)
+    credit_params_stress = cp.credit_risk_parameters_stress(base, config=cfg)
 
     report_md = rpt.build_markdown_report(
         dq=dq, hhi=conc_hhi, co_industry=co_industry, co_vintage=co_vintage,
@@ -127,6 +128,7 @@ def run_pipeline(
         credit_params=credit_params, credit_params_size=credit_params_size,
         credit_params_product=credit_params_product,
         credit_params_structure=credit_params_structure,
+        credit_params_stress=credit_params_stress,
     )
 
     results = {
@@ -157,6 +159,7 @@ def run_pipeline(
         "credit_parameters_by_industry": credit_params_industry,
         "credit_parameters_by_product": credit_params_product,
         "credit_parameters_by_structure": credit_params_structure,
+        "credit_parameters_stress": credit_params_stress,
     }
 
     if persist:

@@ -255,6 +255,16 @@ _Realised, **through-the-cycle** parameters read off the FY2000-2019 outcome dat
 | Collateral | Secured | 436,969 | 8.8% | 62.9% | $410,653 | 3.4% |
 | Collateral | Unsecured | 650,050 | 14.5% | 64.8% | $166,705 | 7.5% |
 
+**10d. Parameter stress test — through-the-cycle vs the downturn (2006, 2007, 2008).** The financial-crisis vintages are a realised, data-grounded downturn: **both PD and LGD rise**, so EL rises multiplicatively. These are the downturn-PD / downturn-LGD inputs for stressed pricing and capital:
+
+| Parameter | Through-the-cycle | Crisis / downturn | Stress multiplier |
+|---|---|---|---|
+| PD — default rate (obligor-weighted) | 12.2% | 25.9% | 2.13x |
+| PD — default rate (exposure-weighted) | 7.7% | 21.9% | 2.85x |
+| LGD — loss given default | 64.0% | 70.0% | 1.09x |
+| EAD — avg exposure per loan ($) | $264,769 | $154,065 | 0.58x |
+| EL rate — expected loss / exposure | 4.9% | 15.3% | 3.11x |
+
 ## Notes — APS 330 / Pillar 3 & governance
 
 - **APS 330 / Pillar 3 (CML-7).** The concentration (section 2) and credit-quality-by-industry outputs are the same primitives that feed a **Pillar 3 (APS 330) credit-risk disclosure**. The `05_aps330_style_credit_quality` table is laid out in that **format for familiarity only** — built from public SBA data, it is **not** a regulated entity's disclosure. In a bank these would be a *feeder* into the periodic Pillar 3 disclosure, not the disclosure itself.

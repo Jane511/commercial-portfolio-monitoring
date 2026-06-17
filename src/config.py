@@ -59,6 +59,7 @@ OUTPUT_TABLES = {
     "credit_parameters_by_industry": TABLES_DIR / "09_credit_risk_parameters_by_industry.csv",
     "credit_parameters_by_product": TABLES_DIR / "09_credit_risk_parameters_by_product.csv",
     "credit_parameters_by_structure": TABLES_DIR / "09_credit_risk_parameters_by_structure.csv",
+    "credit_parameters_stress": TABLES_DIR / "09_credit_risk_parameters_stress.csv",
 }
 
 # --------------------------------------------------------------------------- #

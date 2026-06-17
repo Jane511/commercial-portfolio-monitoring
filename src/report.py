@@ -134,6 +134,7 @@ def build_markdown_report(
     credit_params_size: pd.DataFrame | None = None,
     credit_params_product: pd.DataFrame | None = None,
     credit_params_structure: pd.DataFrame | None = None,
+    credit_params_stress: pd.DataFrame | None = None,
 ) -> str:
     """Assemble a short monitoring-pack report (Markdown) from key tables.
 
@@ -417,6 +418,23 @@ def build_markdown_report(
                 a(f"| {r['cut']} | {r['segment']} | {int(r['loan_count']):,} | "
                   f"{_fmt_pct(r['pd_count'])} | {_fmt_pct(r['lgd'])} | "
                   f"{_fmt_money(r['ead_avg'])} | {_fmt_pct(r['el_rate'])} |")
+            a("")
+
+        if credit_params_stress is not None and not credit_params_stress.empty:
+            vint = credit_params_stress["crisis_vintages"].iloc[0]
+            a(f"**10d. Parameter stress test — through-the-cycle vs the downturn "
+              f"({vint}).** The financial-crisis vintages are a realised, "
+              "data-grounded downturn: **both PD and LGD rise**, so EL rises "
+              "multiplicatively. These are the downturn-PD / downturn-LGD inputs "
+              "for stressed pricing and capital:")
+            a("")
+            a("| Parameter | Through-the-cycle | Crisis / downturn | Stress multiplier |")
+            a("|---|---|---|---|")
+            for _, r in credit_params_stress.iterrows():
+                money = r["metric_key"] == "ead_avg"
+                fmt = _fmt_money if money else _fmt_pct
+                a(f"| {r['parameter']} | {fmt(r['through_the_cycle'])} | "
+                  f"{fmt(r['crisis_downturn'])} | {r['stress_multiplier']:.2f}x |")
             a("")
 
     a("## Notes — APS 330 / Pillar 3 & governance")
