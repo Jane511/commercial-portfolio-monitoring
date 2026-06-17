@@ -1,0 +1,2 @@
+segment,loan_count,defaults,ead_total,ead_avg,ead_avg_defaulted,pd_count,pd_dollar,lgd,el_amount,el_rate,el_per_loan,guaranteed_exposure,guarantee_ratio,lgd_net_of_guarantee
+Total portfolio,1087019,132662,287809010584.65,264769.0,166828.0,0.122,0.0769,0.6401,14166261212.04,0.0492,13032.0,210557232204.0,0.7316,0.1718

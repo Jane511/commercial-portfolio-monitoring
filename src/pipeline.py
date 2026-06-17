@@ -14,6 +14,7 @@ from pathlib import Path
 
 from . import chargeoff as co
 from . import concentration as conc
+from . import credit_parameters as cp
 from . import leading
 from . import problem_exposure as pe
 from . import report as rpt
@@ -107,6 +108,15 @@ def run_pipeline(
 
     # --- 08 Stress scenario feeding the limits ---------------------------- #
     stress_tbl = stress_mod.stress_scenario(base, config=cfg)
+
+    # --- 09 Empirical credit-risk parameters (PD/LGD/EAD/EL) -------------- #
+    # Realised loss-experience anchors for deal pricing and ECL/RWA models.
+    credit_params = cp.credit_risk_parameters(base)
+    credit_params_size = cp.credit_risk_parameters_by_size_band(base)
+    credit_params_industry = cp.credit_risk_parameters_by_industry(base)
+    credit_params_product = cp.credit_risk_parameters_by_product(base)
+    credit_params_structure = cp.credit_risk_parameters_by_structure(base)
+
     report_md = rpt.build_markdown_report(
         dq=dq, hhi=conc_hhi, co_industry=co_industry, co_vintage=co_vintage,
         early_warning=early, stage_proxy=stage_proxy,
@@ -114,6 +124,9 @@ def run_pipeline(
         appetite=appetite, appetite_actions=appetite_actions,
         leading_map=leading_map, origination=origination,
         vov_early_mob=vov_early_mob, stress=stress_tbl,
+        credit_params=credit_params, credit_params_size=credit_params_size,
+        credit_params_product=credit_params_product,
+        credit_params_structure=credit_params_structure,
     )
 
     results = {
@@ -139,6 +152,11 @@ def run_pipeline(
         "origination_trend": origination,
         "vintage_over_vintage_early_mob": vov_early_mob,
         "stress_scenario": stress_tbl,
+        "credit_parameters": credit_params,
+        "credit_parameters_by_size": credit_params_size,
+        "credit_parameters_by_industry": credit_params_industry,
+        "credit_parameters_by_product": credit_params_product,
+        "credit_parameters_by_structure": credit_params_structure,
     }
 
     if persist:

@@ -8,6 +8,7 @@ The raw files carry 43 columns; this project reads the subset below
 | Raw field | Meaning | Used for |
 |---|---|---|
 | `program` | SBA program (here always ` 7A`) | provenance |
+| `subprogram` | 7(a) subprogram (the product within 7(a)) | → `product_type` family |
 | `borrname` | Borrower name | (not analysed; identity only) |
 | `borrstate` | Borrower state | state concentration |
 | `bankname` | Originating lender | lender concentration |
@@ -21,6 +22,8 @@ The raw files carry 43 columns; this project reads the subset below
 | `projectstate` | Project location state | reference |
 | `businesstype` | Corporation / Individual / Partnership | reference |
 | `jobssupported` | Jobs reported supported | reference |
+| `revolverstatus` | Revolving line (TRUE) vs term loan (FALSE) | → `loan_structure` |
+| `collateralind` | Secured (TRUE) vs unsecured (FALSE) | → `collateral_status` |
 | `loanstatus` | Final loan status code | default flag, stage proxy |
 | `paidinfulldate` | Paid-in-full date | as-of inference, seasoning |
 | `chargeoffdate` | Charge-off date | loan age at charge-off, cohort curves |
@@ -55,3 +58,6 @@ The raw files carry 43 columns; this project reads the subset below
 | `months_to_chargeoff` | `(chargeoffdate − approvaldate)` in months, defaults only |
 | `fully_seasoned` | `vintage <= universe.fully_seasoned_max_fy` |
 | `status_label` | Plain-English label for `loanstatus` |
+| `product_type` | Use-of-proceeds facility type: trade/export → working-capital revolving → real-estate proxy (term >15y) → general SME term (`base_table.py`) |
+| `loan_structure` | `revolverstatus` → Term loan / Revolving line of credit |
+| `collateral_status` | `collateralind` → Secured / Unsecured (PPSR-equivalent) |

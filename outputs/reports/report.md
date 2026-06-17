@@ -208,10 +208,57 @@ _APS 220 para 73 / APG 220 para 76. The financial-crisis cohorts (2006-08) charg
 
 > **Stress breaches appetite** → escalate to the charge-off-rate limit owner; review origination credit policy and pricing (see the dashboard actions table).
 
+## 10. Credit-risk parameters (PD / LGD / EAD / EL) — pricing & ECL inputs
+
+_Realised, **through-the-cycle** parameters read off the FY2000-2019 outcome data — the loss-experience anchors a deal-pricing or ECL/RWA model is calibrated against. These are **observed**, not model outputs: no obligor-level rating model lives here (default is an actual status). Identity check: EL rate = PD($) x LGD._
+
+| Parameter | Definition | Portfolio average |
+|---|---|---|
+| **PD** — probability of default (obligor-weighted) | charged-off loans / funded loans | 12.2% |
+| **PD** — exposure-weighted ($) | defaulted EAD / total EAD | 7.7% |
+| **LGD** — loss given default (gross, whole-loan) | charge-off $ / defaulted EAD | 64.0% |
+| **LGD** — net of SBA guarantee (indicative, lender-retained) | LGD x (1 - guaranteed share) | 17.2% |
+| **EAD** — exposure at default (avg per loan) | gross approval | $264,769 |
+| **EAD** — avg per *defaulted* loan | gross approval of defaults | $166,828 |
+| **EL rate** — expected loss / exposure | PD($) x LGD = charge-off $ / total EAD | 4.9% |
+| **EL** — expected loss per loan (avg) | charge-off $ / funded loans | $13,032 |
+| _SBA guaranteed share_ | guaranteed $ / gross approval | 73.2% |
+
+> **Reading note.** The obligor-weighted PD (12%+) pairs with the *defaulted-loan* EAD, not the book-average EAD — defaulters skew smaller, so the exposure-weighted PD($) is lower. For an exposure-based EL, use `EL rate = PD($) x LGD`; for a per-account EL, use the EL-per-loan figure.
+
+**10a. Risk-based parameters by loan-size band (for tiered pricing).** Small tickets default ~5x more often and lose more per dollar — the curve a risk-based price has to ride:
+
+| Size band | Loans | PD (count) | LGD | Avg EAD | EL rate |
+|---|---|---|---|---|---|
+| <=50k | 458,365 | 16.1% | 83.3% | $27,372 | 13.5% |
+| 50k-150k | 260,397 | 11.0% | 72.9% | $103,701 | 8.0% |
+| 150k-350k | 163,918 | 9.1% | 66.9% | $251,442 | 6.1% |
+| 350k-1m | 137,852 | 8.2% | 60.3% | $602,830 | 4.9% |
+| 1m-2m | 49,362 | 7.3% | 57.4% | $1,429,610 | 4.2% |
+| >2m | 17,125 | 2.9% | 52.5% | $3,116,693 | 1.5% |
+
+**10b. Parameters by product (facility type).** This is small-business lending throughout — the dataset has **no residential** mortgage product, and **no labelled commercial-property** field. Facility type is a *use-of-proceeds* read from the data: trade/export subprogram → trade finance; revolving flag → working-capital line; loan term > 15y → real-estate purpose (only real estate carries SBA maturities that long — a labelled **proxy**); everything else → general SME term loan:
+
+| Product (facility type) | Loans | PD (count) | LGD | Avg EAD | EL rate |
+|---|---|---|---|---|---|
+| General SME term loan | 615,115 | 13.1% | 64.2% | $217,619 | 7.1% |
+| Commercial property / real-estate term loan (proxy) | 144,669 | 3.7% | 52.9% | $875,305 | 1.9% |
+| Working-capital line (revolving) | 319,735 | 14.4% | 87.0% | $63,483 | 9.4% |
+| Trade & export finance | 7,500 | 11.2% | 60.4% | $936,121 | 4.6% |
+
+**10c. Parameters by loan structure & collateral.** Two more pricing-relevant cuts — term loan vs revolving line, and secured (collateralised — the PPSR-registered equivalent) vs unsecured:
+
+| Cut | Segment | Loans | PD (count) | LGD | Avg EAD | EL rate |
+|---|---|---|---|---|---|---|
+| Loan structure | Term loan | 765,589 | 11.3% | 61.4% | $346,313 | 4.6% |
+| Loan structure | Revolving line of credit | 321,430 | 14.4% | 86.9% | $70,545 | 8.6% |
+| Collateral | Secured | 436,969 | 8.8% | 62.9% | $410,653 | 3.4% |
+| Collateral | Unsecured | 650,050 | 14.5% | 64.8% | $166,705 | 7.5% |
+
 ## Notes — APS 330 / Pillar 3 & governance
 
 - **APS 330 / Pillar 3 (CML-7).** The concentration (section 2) and credit-quality-by-industry outputs are the same primitives that feed a **Pillar 3 (APS 330) credit-risk disclosure**. The `05_aps330_style_credit_quality` table is laid out in that **format for familiarity only** — built from public SBA data, it is **not** a regulated entity's disclosure. In a bank these would be a *feeder* into the periodic Pillar 3 disclosure, not the disclosure itself.
-- **Governance & validation.** Reporting cadence to forums, appetite ownership, and independent annual validation are documented in `docs/governance.md`. The model-performance layer (PD/LGD/EAD) is **N/A** here — no rating model lives in this repo (default is an observed status, not a model output); see the sister modelling repos for that layer.
+- **Governance & validation.** Reporting cadence to forums, appetite ownership, and independent annual validation are documented in `docs/governance.md`. Section 10 extracts **realised** PD/LGD/EAD/EL as calibration inputs, but there is **no fitted rating model** in this repo (default is an observed status, not a model output), so the model-performance / backtesting layer is **N/A** — that lives in the sister modelling repos.
 
 ---
 

@@ -13,6 +13,7 @@ import pytest
 
 from src import chargeoff as co
 from src import concentration as conc
+from src import credit_parameters as cp
 from src import leading
 from src import problem_exposure as pe
 from src import report as rpt
@@ -63,6 +64,11 @@ def raw_frame():
 
     return pd.DataFrame({
         "program": " 7A",
+        "subprogram": rng.choice(
+            ["Guaranty", "FA$TRK (Small Loan Express)", "Standard Asset Based",
+             "International Trade - Sec, 7(a) (16)"], n),
+        "revolverstatus": rng.choice(["TRUE", "FALSE"], n),
+        "collateralind": rng.choice(["TRUE", "FALSE"], n),
         "borrname": [f"Borrower {i}" for i in range(n)],
         "borrstate": rng.choice(states, n),
         "bankname": rng.choice(banks, n),
@@ -269,6 +275,58 @@ def test_problem_exposure_by_segment(problem_base):
 
 
 # --------------------------------------------------------------------------- #
+# Credit-risk parameters (PD / LGD / EAD / EL)                                #
+# --------------------------------------------------------------------------- #
+def test_credit_parameters_overall_ranges_and_identity(base):
+    out = cp.credit_risk_parameters(base)
+    assert len(out) == 1
+    p = out.iloc[0]
+    # Every parameter is a sensible probability / ratio.
+    for col in ("pd_count", "pd_dollar", "lgd", "el_rate", "guarantee_ratio"):
+        assert 0.0 <= p[col] <= 1.0
+    # Core expected-loss identity: EL rate == PD($) x LGD.
+    assert p["el_rate"] == pytest.approx(p["pd_dollar"] * p["lgd"], abs=1e-3)
+    # EL amount reconciles with charge-off $ on defaulted loans.
+    realised = base.loc[base["is_default"], "grosschargeoffamount"].sum()
+    assert p["el_amount"] == pytest.approx(realised, rel=1e-6)
+    # Net-of-guarantee LGD is no larger than gross LGD.
+    assert p["lgd_net_of_guarantee"] <= p["lgd"] + 1e-9
+
+
+def test_credit_parameters_by_size_band_ordered_and_bounded(base):
+    out = cp.credit_risk_parameters_by_size_band(base)
+    order = list(base["size_band"].cat.categories)
+    assert list(out["segment"]) == order  # natural small -> large order preserved
+    for col in ("pd_count", "lgd", "el_rate"):
+        assert out[col].dropna().between(0, 1).all()
+
+
+def test_credit_parameters_by_industry_sorted_by_exposure(base):
+    out = cp.credit_risk_parameters_by_industry(base)
+    assert out["ead_total"].is_monotonic_decreasing
+
+
+def test_credit_parameters_by_product(base):
+    out = cp.credit_risk_parameters_by_product(base)
+    assert out["ead_total"].is_monotonic_decreasing
+    # Loans resolve to the intuitive facility-type taxonomy.
+    assert set(out["segment"]) <= {
+        "Trade & export finance", "Working-capital line (revolving)",
+        "Commercial property / real-estate term loan (proxy)",
+        "General SME term loan"}
+    for col in ("pd_count", "lgd", "el_rate"):
+        assert out[col].dropna().between(0, 1).all()
+
+
+def test_credit_parameters_by_structure(base):
+    out = cp.credit_risk_parameters_by_structure(base)
+    # Both binary cuts are present and labelled.
+    assert set(out["cut"]) == {"Loan structure", "Collateral"}
+    assert {"Term loan", "Revolving line of credit"} <= set(out["segment"])
+    assert {"Secured", "Unsecured"} <= set(out["segment"])
+
+
+# --------------------------------------------------------------------------- #
 # Risk appetite & limits (CML-2)                                              #
 # --------------------------------------------------------------------------- #
 def test_appetite_dashboard_shape(base, cfg):
@@ -378,3 +436,20 @@ def test_report_leads_with_rag_dashboard(base, cfg):
     assert md.index("Board credit-risk dashboard") < md.index("Portfolio at a glance")
     assert "RAG status" in md
     assert "Risk appetite & limit register" in md
+
+
+def test_report_renders_credit_parameter_block(base, cfg):
+    dq = data_quality_summary(base, config=cfg)
+    hhi = conc.hhi_summary(base)
+    co_ind = co.chargeoff_by_industry(base)
+    co_vin = co.chargeoff_by_vintage(base)
+    early = flag_high_risk_segments(base, config=cfg)
+    stage = rpt.stage_proxy_summary(base, config=cfg)
+    params = cp.credit_risk_parameters(base)
+    params_size = cp.credit_risk_parameters_by_size_band(base)
+    md = rpt.build_markdown_report(
+        dq, hhi, co_ind, co_vin, early, stage,
+        credit_params=params, credit_params_size=params_size,
+    )
+    assert "Credit-risk parameters (PD / LGD / EAD / EL)" in md
+    assert "Risk-based parameters by loan-size band" in md

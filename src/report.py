@@ -130,14 +130,19 @@ def build_markdown_report(
     origination: pd.DataFrame | None = None,
     vov_early_mob: pd.DataFrame | None = None,
     stress: pd.DataFrame | None = None,
+    credit_params: pd.DataFrame | None = None,
+    credit_params_size: pd.DataFrame | None = None,
+    credit_params_product: pd.DataFrame | None = None,
+    credit_params_structure: pd.DataFrame | None = None,
 ) -> str:
     """Assemble a short monitoring-pack report (Markdown) from key tables.
 
-    The optional args (CML-1/CML-3/CML-4) keep existing callers/tests working:
-    *problem_exposure* adds the pre-charge-off early-warning layer, *appetite* /
-    *appetite_actions* lead the pack with the board RAG dashboard, and
-    *leading_map* / *origination* / *vov_early_mob* add the leading-vs-lagging
-    framing and the two leading views.
+    The optional args keep existing callers/tests working: *problem_exposure*
+    adds the pre-charge-off early-warning layer, *appetite* / *appetite_actions*
+    lead the pack with the board RAG dashboard, *leading_map* / *origination* /
+    *vov_early_mob* add the leading-vs-lagging framing and the two leading views,
+    and *credit_params* / *credit_params_size* add the empirical PD/LGD/EAD/EL
+    parameter block used as deal-pricing and ECL/RWA assumption inputs.
     """
     lines: list[str] = []
     a = lines.append
@@ -331,6 +336,89 @@ def build_markdown_report(
               "but the headroom is monitored.")
         a("")
 
+    if credit_params is not None and not credit_params.empty:
+        p = credit_params.iloc[0]
+        a("## 10. Credit-risk parameters (PD / LGD / EAD / EL) — pricing & ECL inputs")
+        a("")
+        a("_Realised, **through-the-cycle** parameters read off the FY2000-2019 "
+          "outcome data — the loss-experience anchors a deal-pricing or ECL/RWA "
+          "model is calibrated against. These are **observed**, not model "
+          "outputs: no obligor-level rating model lives here (default is an "
+          "actual status). Identity check: EL rate = PD($) x LGD._")
+        a("")
+        a("| Parameter | Definition | Portfolio average |")
+        a("|---|---|---|")
+        a(f"| **PD** — probability of default (obligor-weighted) | charged-off "
+          f"loans / funded loans | {_fmt_pct(p['pd_count'])} |")
+        a(f"| **PD** — exposure-weighted ($) | defaulted EAD / total EAD | "
+          f"{_fmt_pct(p['pd_dollar'])} |")
+        a(f"| **LGD** — loss given default (gross, whole-loan) | charge-off $ / "
+          f"defaulted EAD | {_fmt_pct(p['lgd'])} |")
+        a(f"| **LGD** — net of SBA guarantee (indicative, lender-retained) | "
+          f"LGD x (1 - guaranteed share) | {_fmt_pct(p['lgd_net_of_guarantee'])} |")
+        a(f"| **EAD** — exposure at default (avg per loan) | gross approval | "
+          f"{_fmt_money(p['ead_avg'])} |")
+        a(f"| **EAD** — avg per *defaulted* loan | gross approval of defaults | "
+          f"{_fmt_money(p['ead_avg_defaulted'])} |")
+        a(f"| **EL rate** — expected loss / exposure | PD($) x LGD = charge-off "
+          f"$ / total EAD | {_fmt_pct(p['el_rate'])} |")
+        a(f"| **EL** — expected loss per loan (avg) | charge-off $ / funded "
+          f"loans | {_fmt_money(p['el_per_loan'])} |")
+        a(f"| _SBA guaranteed share_ | guaranteed $ / gross approval | "
+          f"{_fmt_pct(p['guarantee_ratio'])} |")
+        a("")
+        a("> **Reading note.** The obligor-weighted PD (12%+) pairs with the "
+          "*defaulted-loan* EAD, not the book-average EAD — defaulters skew "
+          "smaller, so the exposure-weighted PD($) is lower. For an "
+          "exposure-based EL, use `EL rate = PD($) x LGD`; for a per-account "
+          "EL, use the EL-per-loan figure.")
+        a("")
+
+        if credit_params_size is not None and not credit_params_size.empty:
+            a("**10a. Risk-based parameters by loan-size band (for tiered "
+              "pricing).** Small tickets default ~5x more often and lose more "
+              "per dollar — the curve a risk-based price has to ride:")
+            a("")
+            a("| Size band | Loans | PD (count) | LGD | Avg EAD | EL rate |")
+            a("|---|---|---|---|---|---|")
+            for _, r in credit_params_size.iterrows():
+                a(f"| {r['segment']} | {int(r['loan_count']):,} | "
+                  f"{_fmt_pct(r['pd_count'])} | {_fmt_pct(r['lgd'])} | "
+                  f"{_fmt_money(r['ead_avg'])} | {_fmt_pct(r['el_rate'])} |")
+            a("")
+
+        if credit_params_product is not None and not credit_params_product.empty:
+            a("**10b. Parameters by product (facility type).** This is "
+              "small-business lending throughout — the dataset has **no "
+              "residential** mortgage product, and **no labelled commercial-"
+              "property** field. Facility type is a *use-of-proceeds* read from "
+              "the data: trade/export subprogram → trade finance; revolving flag "
+              "→ working-capital line; loan term > 15y → real-estate purpose "
+              "(only real estate carries SBA maturities that long — a labelled "
+              "**proxy**); everything else → general SME term loan:")
+            a("")
+            a("| Product (facility type) | Loans | PD (count) | LGD | Avg EAD | EL rate |")
+            a("|---|---|---|---|---|---|")
+            for _, r in credit_params_product.iterrows():
+                a(f"| {r['segment']} | {int(r['loan_count']):,} | "
+                  f"{_fmt_pct(r['pd_count'])} | {_fmt_pct(r['lgd'])} | "
+                  f"{_fmt_money(r['ead_avg'])} | {_fmt_pct(r['el_rate'])} |")
+            a("")
+
+        if credit_params_structure is not None and not credit_params_structure.empty:
+            a("**10c. Parameters by loan structure & collateral.** Two more "
+              "pricing-relevant cuts — term loan vs revolving line, and "
+              "secured (collateralised — the PPSR-registered equivalent) vs "
+              "unsecured:")
+            a("")
+            a("| Cut | Segment | Loans | PD (count) | LGD | Avg EAD | EL rate |")
+            a("|---|---|---|---|---|---|---|")
+            for _, r in credit_params_structure.iterrows():
+                a(f"| {r['cut']} | {r['segment']} | {int(r['loan_count']):,} | "
+                  f"{_fmt_pct(r['pd_count'])} | {_fmt_pct(r['lgd'])} | "
+                  f"{_fmt_money(r['ead_avg'])} | {_fmt_pct(r['el_rate'])} |")
+            a("")
+
     a("## Notes — APS 330 / Pillar 3 & governance")
     a("")
     a("- **APS 330 / Pillar 3 (CML-7).** The concentration (section 2) and "
@@ -342,9 +430,11 @@ def build_markdown_report(
       "the periodic Pillar 3 disclosure, not the disclosure itself.")
     a("- **Governance & validation.** Reporting cadence to forums, appetite "
       "ownership, and independent annual validation are documented in "
-      "`docs/governance.md`. The model-performance layer (PD/LGD/EAD) is **N/A** "
-      "here — no rating model lives in this repo (default is an observed status, "
-      "not a model output); see the sister modelling repos for that layer.")
+      "`docs/governance.md`. Section 10 extracts **realised** PD/LGD/EAD/EL as "
+      "calibration inputs, but there is **no fitted rating model** in this repo "
+      "(default is an observed status, not a model output), so the "
+      "model-performance / backtesting layer is **N/A** — that lives in the "
+      "sister modelling repos.")
     a("")
     a("---")
     a("")

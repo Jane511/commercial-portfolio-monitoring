@@ -9,7 +9,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from .config import load_config
+from .config import EXPORT_SUBPROGRAMS, RE_TERM_MONTHS_MIN, load_config
 from .logger import get_logger
 
 _log = get_logger(__name__)
@@ -47,6 +47,40 @@ def build_base_table(df: pd.DataFrame, config: dict | None = None) -> pd.DataFra
 
     # Size band on gross approval.
     out["size_band"] = _size_band(out["grossapproval"], bands["edges"], bands["labels"])
+
+    # Product taxonomy. SBA 7(a) is small-business lending throughout — there is
+    # NO residential or labelled commercial-property mortgage product here. We
+    # derive an intuitive use-of-proceeds *facility type* from the fields that
+    # are present. Defensive on column presence so older extracts / test
+    # fixtures without these fields still run.
+    for col in ("subprogram", "revolverstatus", "collateralind"):
+        if col not in out.columns:
+            out[col] = pd.NA
+
+    _bool = {"TRUE": True, "FALSE": False, "T": True, "F": False,
+             "1": True, "0": False, "YES": True, "NO": False}
+    rev = out["revolverstatus"].astype("string").str.strip().str.upper().map(_bool)
+    sec = out["collateralind"].astype("string").str.strip().str.upper().map(_bool)
+    out["loan_structure"] = rev.map(
+        {True: "Revolving line of credit", False: "Term loan"}).fillna("Unknown")
+    out["collateral_status"] = sec.map(
+        {True: "Secured", False: "Unsecured"}).fillna("Unknown")
+
+    # Facility-type product. Precedence: trade/export first (a distinct product),
+    # then revolving working-capital lines, then long-dated term loans (only
+    # real estate carries SBA maturities beyond ~15y → commercial-property
+    # PROXY), else a general SME term loan.
+    sub = out["subprogram"].astype("string").str.strip()
+    term = pd.to_numeric(out["terminmonths"], errors="coerce")
+    out["product_type"] = np.select(
+        [sub.isin(EXPORT_SUBPROGRAMS).to_numpy(dtype=bool),
+         rev.eq(True).to_numpy(dtype=bool),
+         (term > RE_TERM_MONTHS_MIN).to_numpy(dtype=bool)],
+        ["Trade & export finance",
+         "Working-capital line (revolving)",
+         "Commercial property / real-estate term loan (proxy)"],
+        default="General SME term loan",
+    )
 
     # Loan age (months) at charge-off — only meaningful for charged-off loans
     # that have both an approval and a charge-off date.

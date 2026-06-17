@@ -54,6 +54,11 @@ OUTPUT_TABLES = {
     "origination_trend": TABLES_DIR / "07_origination_trend.csv",
     "vintage_over_vintage_early_mob": TABLES_DIR / "07_vintage_over_vintage_early_mob.csv",
     "stress_scenario": TABLES_DIR / "08_stress_scenario.csv",
+    "credit_parameters": TABLES_DIR / "09_credit_risk_parameters.csv",
+    "credit_parameters_by_size": TABLES_DIR / "09_credit_risk_parameters_by_size_band.csv",
+    "credit_parameters_by_industry": TABLES_DIR / "09_credit_risk_parameters_by_industry.csv",
+    "credit_parameters_by_product": TABLES_DIR / "09_credit_risk_parameters_by_product.csv",
+    "credit_parameters_by_structure": TABLES_DIR / "09_credit_risk_parameters_by_structure.csv",
 }
 
 # --------------------------------------------------------------------------- #
@@ -106,14 +111,31 @@ NAICS_SECTOR_NAMES = {
     "92": "Public Administration",
 }
 
+# PRODUCT (facility-type) taxonomy. SBA 7(a) is small-business lending
+# throughout — there is NO residential or labelled commercial-property mortgage
+# product. We derive an intuitive *use-of-proceeds* facility type from the fields
+# that are present (subprogram, revolving flag, loan term). See
+# src/base_table.py:_product_type for the precedence logic.
+#
+# Trade-finance subprograms (export / international-trade products):
+EXPORT_SUBPROGRAMS = {
+    "International Trade - Sec, 7(a) (16)",
+    "Revolving Line of Credit Exports - Sec. 7(a) (14)",
+    "EXPORT IMPORT HARMONIZATION",
+}
+# SBA 7(a) maximum maturities are ~10y (working capital / equipment) and 25y
+# (real estate). A term beyond 15y therefore strongly indicates a real-estate
+# (owner-occupied commercial-property) purpose — used as a labelled PROXY.
+RE_TERM_MONTHS_MIN = 180
+
 # Columns read from the raw CSVs. Keeping this explicit keeps memory down on
 # the ~1.2M-row load and documents exactly what the project depends on.
 RAW_COLUMNS = [
-    "program", "borrname", "borrstate", "bankname",
+    "program", "subprogram", "borrname", "borrstate", "bankname",
     "grossapproval", "sbaguaranteedapproval",
     "approvaldate", "approvalfy", "terminmonths",
     "naicscode", "naicsdescription", "projectstate",
-    "businesstype", "jobssupported",
+    "businesstype", "jobssupported", "revolverstatus", "collateralind",
     "loanstatus", "paidinfulldate", "chargeoffdate", "grosschargeoffamount",
 ]
 
