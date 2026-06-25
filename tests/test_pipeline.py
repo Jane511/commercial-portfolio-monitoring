@@ -19,7 +19,7 @@ from src import problem_exposure as pe
 from src import report as rpt
 from src import risk_appetite as ra
 from src import stress as stress_mod
-from src import transitions, vintage
+from src import transitions, validation, vintage
 from src.base_table import build_base_table
 from src.config import load_config
 from src.data_loader import clean, data_quality_summary
@@ -183,8 +183,23 @@ def test_concentration_by_industry(base):
 
 def test_hhi_summary_dimensions(base):
     out = conc.hhi_summary(base)
-    assert set(out["dimension"]) == {"industry", "state", "lender"}
+    assert set(out["dimension"]) == {"industry", "state", "lender", "borrower"}
     assert (out["hhi"] >= 0).all() and (out["hhi"] <= 1).all()
+
+
+def test_concentration_borrower_dimension(base):
+    out = conc.concentration_by(base, "borrower")
+    assert "borrower" in out.columns
+    # Most granular dimension: top-1 borrower share is tiny.
+    assert out.iloc[0]["exposure_share"] <= 0.5
+
+
+def test_originator_performance(base):
+    # Low min_loans so the small synthetic banks qualify.
+    out = conc.originator_performance(base, top_n=5, min_loans=10)
+    assert {"originating_lender", "chargeoff_rate_count", "nonperforming_rate"} <= set(out.columns)
+    assert out["chargeoff_rate_count"].is_monotonic_decreasing  # worst-first
+    assert out["chargeoff_rate_count"].between(0, 1).all()
 
 
 # --------------------------------------------------------------------------- #
@@ -272,6 +287,83 @@ def test_problem_exposure_by_segment(problem_base):
     seg = pe.problem_exposure_by(problem_base, "industry")
     assert {"problem_rate", "chargeoff_rate"} <= set(seg.columns)
     assert (seg["problem_rate"].between(0, 1)).all()
+
+
+def test_nonperforming_flag_is_default_plus_problem(problem_base):
+    # NPL proxy (gap review G7) = charge-off OR problem-exposure pipeline.
+    npl = problem_base["is_nonperforming"]
+    expected = problem_base["is_default"] | problem_base["is_problem_exposure"]
+    assert npl.equals(expected)
+    # In the fixture: 10 CHGOFF + 20 problem (DELINQ/PSTDUE/LIQUID) = 30 NPL.
+    assert int(npl.sum()) == 30
+
+
+@pytest.fixture(scope="module")
+def purch_base(cfg):
+    """A cleaned frame including PURCH(NOT C/O) (gap review G8)."""
+    statuses = ["CHGOFF"] * 5 + ["P I F"] * 80 + ["PURCH(NOT C/O)"] * 15
+    n = len(statuses)
+    raw = pd.DataFrame({
+        "program": " 7A", "borrname": [f"B{i}" for i in range(n)],
+        "borrstate": "CA", "bankname": "Bank A",
+        "grossapproval": 100_000, "sbaguaranteedapproval": 75_000,
+        "approvaldate": "01/15/2010", "approvalfy": 2010, "terminmonths": 84,
+        "naicscode": "722110", "naicsdescription": "d", "projectstate": "CA",
+        "businesstype": "CORP", "jobssupported": 3, "loanstatus": statuses,
+        "paidinfulldate": "", "chargeoffdate": "",
+        "grosschargeoffamount": [60_000 if s == "CHGOFF" else 0 for s in statuses],
+    })
+    return build_base_table(clean(raw, config=cfg), config=cfg)
+
+
+def test_purch_counts_as_problem_not_default(purch_base):
+    # PURCH(NOT C/O) is a problem exposure / non-performing, NOT a charge-off.
+    assert int(purch_base["is_default"].sum()) == 5
+    assert int(purch_base["is_problem_exposure"].sum()) == 15
+    assert int(purch_base["is_nonperforming"].sum()) == 20
+
+
+def test_stage_proxy_three_way(problem_base, cfg):
+    stage = rpt.stage_proxy_summary(problem_base, config=cfg)
+    # All three IFRS 9-style stages present when problem exposures exist.
+    assert set(stage["proxy_stage"]) == {
+        "Stage 1 — performing", "Stage 2 — problem exposure (SICR proxy)",
+        "Stage 3 — charged off (default)"}
+    # Stage 3 count matches the charge-offs (10 in the fixture).
+    s3 = stage.loc[stage["proxy_stage"].str.startswith("Stage 3"), "loan_count"].iloc[0]
+    assert s3 == 10
+
+
+def test_nonperforming_pd_at_least_chargeoff_pd(problem_base):
+    out = cp.credit_risk_parameters(problem_base)
+    p = out.iloc[0]
+    assert {"pd_count_npl", "pd_dollar_npl"} <= set(out.columns)
+    # NPL PD is broader than (>=) the charge-off PD.
+    assert p["pd_count_npl"] >= p["pd_count"]
+
+
+# --------------------------------------------------------------------------- #
+# New appetite limits, tolerance band & predictiveness validation             #
+# --------------------------------------------------------------------------- #
+def test_new_appetite_limits_present(base, cfg):
+    dash = ra.appetite_dashboard(base, config=cfg)
+    expected = {"single_borrower_share", "top20_borrower_share", "top_state_share",
+                "revolving_product_share", "small_ticket_share", "origination_growth",
+                "el_rate", "nonperforming_rate"}
+    assert expected <= set(dash["id"])
+    assert "within_tolerance_band" in dash.columns
+    # Every limit resolved to a numeric value (no missing basis metric).
+    assert dash["value"].notna().all()
+
+
+def test_predictiveness_validation(base, cfg):
+    out = validation.leading_indicator_predictiveness(base, config=cfg)
+    assert {"indicator", "cohorts", "spearman_vs_final_chargeoff", "verdict"} <= set(out.columns)
+    assert (out["indicator"].str.contains("Early-MOB")).any()
+    panel = validation.cohort_leading_vs_final(base, config=cfg)
+    assert {"early_mob_chargeoff", "final_chargeoff_rate"} <= set(panel.columns)
+    # Only seasoned cohorts with an observable early reading are kept.
+    assert panel["final_chargeoff_rate"].between(0, 1).all()
 
 
 # --------------------------------------------------------------------------- #
@@ -404,13 +496,17 @@ def test_crisis_multiplier_above_one(base, cfg):
 
 def test_stress_scenario_links_to_limit(base, cfg):
     s = stress_mod.stress_scenario(base, config=cfg)
-    assert list(s["scenario"].str[:8]) == ["Baseline", "Crisis s"]
+    # Four-scenario ladder: baseline, adverse, severe, hypothetical.
+    assert list(s["scenario"].str[:8]) == ["Baseline", "Adverse ", "Severe —", "Hypothet"]
     assert (s["chargeoff_rate"].between(0, 1)).all()
-    # Stressed rate >= baseline; stressed RAG is at least as severe.
-    assert s["chargeoff_rate"].iloc[1] >= s["chargeoff_rate"].iloc[0]
-    assert set(s["rag_vs_limit"]) <= {"GREEN", "AMBER", "RED", "N/A"}
+    # Each scenario is tested against BOTH the charge-off and the EL limit.
+    for col in ("rag_vs_chargeoff_limit", "rag_vs_el_limit"):
+        assert set(s[col]) <= {"GREEN", "AMBER", "RED", "N/A"}
+    # Severity is monotone non-decreasing across the ladder (charge-off and EL).
+    assert s["chargeoff_rate"].is_monotonic_increasing
+    assert s["el_rate"].is_monotonic_increasing
     # Additional charge-off exposure under stress is non-negative.
-    assert s["additional_vs_baseline"].iloc[1] >= 0
+    assert (s["additional_vs_baseline"] >= 0).all()
 
 
 # --------------------------------------------------------------------------- #
@@ -426,8 +522,11 @@ def test_report_builds(base, cfg):
     md = rpt.build_markdown_report(dq, hhi, co_ind, co_vin, early, stage)
     assert "Commercial Portfolio Monitoring Pack" in md
     assert "APS 330-style" in md
-    # Stage proxy is a 2-row performing/defaulted split.
-    assert len(stage) == 2
+    # Stage proxy uses the IFRS 9-style Stage 1/2/3 labels (a subset present
+    # depending on the fixture's statuses).
+    assert set(stage["proxy_stage"]) <= {
+        "Stage 1 — performing", "Stage 2 — problem exposure (SICR proxy)",
+        "Stage 3 — charged off (default)"}
 
 
 def test_report_leads_with_rag_dashboard(base, cfg):

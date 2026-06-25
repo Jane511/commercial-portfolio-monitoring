@@ -3,7 +3,9 @@ metric,type,rationale
 Charge-off rate by industry/size/vintage,Lagging,Realised write-offs
 Vintage cohort charge-off curves,Lagging,Cumulative realised losses by age
 Loan-age transition (when charge-offs occur),Lagging,Realised default timing
-Stage proxy (performing vs defaulted),Lagging,Terminal status only
-Problem-exposure layer (DELINQ/PSTDUE/LIQUID),Leading,Pre-charge-off pipeline; IN LIQUIDATION ~ certain future charge-off
+Stage proxy (Stage 1 / 2 / 3),Mixed,Stage 2 (problem) is leading; Stage 3 is realised
+Originator (third-party) performance,Leading/oversight,A weak channel's charge-off rate flags future losses from its pipeline
+Problem-exposure layer (DELINQ/PSTDUE/LIQUID/PURCH),Leading,Non-performing pipeline; IN LIQUIDATION / guaranty-purchased ~ certain future charge-off
 Origination volume/mix trend by approval year,Leading,Mix shift in what is being written leads the future charge-off rate
 Vintage-over-vintage early-MOB charge-off,Leading,Young cohort deteriorating faster than predecessors at the same age
+Predictiveness validation (early signal vs final loss),Leading/validation,Confirms the leading signals actually rank cohorts by eventual loss

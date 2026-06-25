@@ -41,9 +41,16 @@ def build_base_table(df: pd.DataFrame, config: dict | None = None) -> pd.DataFra
     # Default flag (charge-off) — the realised, *lagging* loss point.
     out["is_default"] = out["loanstatus"].isin(default_statuses)
 
-    # Problem-exposure flag (DELINQ / PSTDUE / LIQUID) — the *leading*,
-    # pre-charge-off early-warning pipeline (APS 220 para 79).
+    # Problem-exposure flag (DELINQ / PSTDUE / LIQUID / PURCH(NOT C/O)) — the
+    # pre / around-default non-performing pipeline (APS 220 paras 33/79). PURCH
+    # is an SBA-honoured guarantee (effective default not yet written off).
     out["is_problem_exposure"] = out["loanstatus"].isin(problem_statuses)
+
+    # Non-performing flag — the SBA-feasible 90+DPD / unlikely-to-pay proxy
+    # (APS 220 reference default; gap review G7): a realised charge-off OR a loan
+    # sitting in the problem-exposure pipeline. Reported alongside the (narrower,
+    # lagging) charge-off default so the understatement is explicit.
+    out["is_nonperforming"] = out["is_default"] | out["is_problem_exposure"]
 
     # Size band on gross approval.
     out["size_band"] = _size_band(out["grossapproval"], bands["edges"], bands["labels"])

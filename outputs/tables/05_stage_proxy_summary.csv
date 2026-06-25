@@ -1,3 +1,4 @@
 proxy_stage,loan_count,exposure,chargeoff_amount,exposure_share
-Defaulted (charged off) — proxy Stage 3,132662,22131753989.0,14166261212.04,0.0769
-Performing — proxy Stage 1/2,954357,265677256595.65,5612039834.27,0.9231
+Stage 1 — performing,944552,259153795297.65,5611564476.45,0.9004
+Stage 2 — problem exposure (SICR proxy),9805,6523461298.0,475357.82,0.0227
+Stage 3 — charged off (default),132662,22131753989.0,14166261212.04,0.0769

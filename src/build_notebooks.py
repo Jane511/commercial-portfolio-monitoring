@@ -123,7 +123,8 @@ nb02 = notebook([
     md("# 02 — Concentration risk\n\n"
        "**Plain English:** *Concentration* asks \"are we putting too many eggs "
        "in one basket?\" We measure how exposure (total gross approval $) spreads "
-       "across **industries**, **states**, and **lenders**.\n\n"
+       "across **industries**, **states**, **originating lenders** (the channel) "
+       "and **borrowers** (single-name / franchise brands).\n\n"
        "Two standard measures:\n"
        "- **Top-N share** — the % of the book held by the largest N segments.\n"
        "- **HHI (Herfindahl–Hirschman Index)** — the sum of squared segment "
@@ -138,17 +139,21 @@ nb02 = notebook([
          "ind = conc.concentration_by(base, 'industry')\n"
          "st = conc.concentration_by(base, 'state')\n"
          "ld = conc.concentration_by(base, 'lender')\n"
+         "bo = conc.concentration_by(base, 'borrower')\n"
          "ind.to_csv(TABLES_DIR / '02_concentration_industry.csv', index=False)\n"
          "st.to_csv(TABLES_DIR / '02_concentration_state.csv', index=False)\n"
-         "ld.to_csv(TABLES_DIR / '02_concentration_lender.csv', index=False)"),
+         "ld.to_csv(TABLES_DIR / '02_concentration_lender.csv', index=False)\n"
+         "bo.to_csv(TABLES_DIR / '02_concentration_borrower.csv', index=False)"),
     md("### Result: HHI + top-N exposure share by dimension"),
     code("hhi"),
     md("#### Top industries by exposure (with each segment's charge-off rate)"),
     code("ind"),
     code("plot_concentration_bar(ind, 'industry', 'Exposure concentration by industry (NAICS sector)')"),
     md("**Read-out:** the book is **moderately** concentrated by industry "
-       "(HHI ≈ 0.10) but **well diversified** across states and the 4,000+ "
-       "lenders. Industry is the dimension worth watching."),
+       "(HHI ≈ 0.10) but **well diversified** across states, the 4,000+ "
+       "originating lenders and >900k borrowers (single-name share is immaterial — "
+       "the largest names are franchise brands, a correlated-cluster to watch). "
+       "Industry is the dimension worth watching."),
 ])
 
 # --------------------------------------------------------------------------- #
@@ -231,8 +236,9 @@ nb05 = notebook([
     md("# 05 — Monitoring pack / report\n\n"
        "**Plain English:** We pull the key tables together into a short, "
        "disclosure-style monitoring pack and write it to `outputs/reports/report.md`.\n\n"
-       "Includes a coarse **performing-vs-defaulted stage proxy** and a "
-       "credit-quality table laid out in **APS 330-style disclosure format**.\n\n"
+       "Includes a 3-stage **IFRS 9-style proxy** (Stage 1 performing / Stage 2 "
+       "problem-exposure / Stage 3 charged-off) and a credit-quality table laid "
+       "out in **APS 330-style disclosure format**.\n\n"
        "> ⚠️ **Labelling:** these are *monitoring outputs on public SBA data*, "
        "not a regulated entity's disclosure. The APS 330 layout is used for "
        "familiarity only. Full IFRS 9 staging and transition matrices live in "
@@ -247,7 +253,7 @@ nb05 = notebook([
          "aps = rpt.aps330_style_credit_quality(base)\n"
          "stage.to_csv(TABLES_DIR / '05_stage_proxy_summary.csv', index=False)\n"
          "aps.to_csv(TABLES_DIR / '05_aps330_style_credit_quality.csv', index=False)"),
-    md("### Result: performing-vs-defaulted stage proxy"),
+    md("### Result: 3-stage IFRS 9-style proxy (Stage 1 / 2 / 3)"),
     code("stage"),
     md("#### APS 330-style credit-quality by industry *(format only — not a regulatory disclosure)*"),
     code("aps.head(12)"),
@@ -264,7 +270,7 @@ nb05 = notebook([
          "print(md_report[:1200])"),
     md("**Read-out:** `outputs/reports/report.md` is the one-page pack a credit committee "
        "would skim — portfolio size, concentration, worst industries/vintages, "
-       "flagged segments, and the performing/defaulted split."),
+       "flagged segments, and the Stage 1/2/3 split."),
 ])
 
 NOTEBOOKS = {

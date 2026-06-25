@@ -20,7 +20,7 @@ from . import problem_exposure as pe
 from . import report as rpt
 from . import risk_appetite as ra
 from . import stress as stress_mod
-from . import transitions, vintage
+from . import transitions, validation, vintage
 from .base_table import build_base_table
 from .charts import (
     plot_chargeoff_bar,
@@ -75,7 +75,9 @@ def run_pipeline(
     conc_industry = conc.concentration_by(base, "industry")
     conc_state = conc.concentration_by(base, "state")
     conc_lender = conc.concentration_by(base, "lender")
+    conc_borrower = conc.concentration_by(base, "borrower")
     conc_hhi = conc.hhi_summary(base)
+    originator_perf = conc.originator_performance(base)
 
     # --- 03 Charge-off & vintage cohorts ---------------------------------- #
     _log.info("Step 4/6 — Charge-off rates & vintage cohort curves")
@@ -106,6 +108,10 @@ def run_pipeline(
     origination = leading.origination_trend(base, config=cfg)
     vov_early_mob = leading.vintage_over_vintage_early_mob(base, config=cfg)
 
+    # --- 07b Predictiveness validation of the leading indicators ---------- #
+    predictiveness = validation.leading_indicator_predictiveness(base, config=cfg)
+    cohort_leading = validation.cohort_leading_vs_final(base, config=cfg)
+
     # --- 08 Stress scenario feeding the limits ---------------------------- #
     stress_tbl = stress_mod.stress_scenario(base, config=cfg)
 
@@ -129,6 +135,8 @@ def run_pipeline(
         credit_params_product=credit_params_product,
         credit_params_structure=credit_params_structure,
         credit_params_stress=credit_params_stress,
+        conc_borrower=conc_borrower, originator_perf=originator_perf,
+        predictiveness=predictiveness,
     )
 
     results = {
@@ -137,6 +145,7 @@ def run_pipeline(
         "concentration_industry": conc_industry,
         "concentration_state": conc_state,
         "concentration_lender": conc_lender,
+        "concentration_borrower": conc_borrower,
         "concentration_hhi": conc_hhi,
         "chargeoff_by_industry": co_industry,
         "chargeoff_by_size": co_size,
@@ -146,6 +155,7 @@ def run_pipeline(
         "early_warning": early,
         "problem_exposure_overview": pe_overview,
         "problem_exposure_by_industry": pe_by_industry,
+        "originator_performance": originator_perf,
         "stage_proxy": stage_proxy,
         "aps330_credit_quality": aps330,
         "risk_appetite_dashboard": appetite,
@@ -160,6 +170,8 @@ def run_pipeline(
         "credit_parameters_by_product": credit_params_product,
         "credit_parameters_by_structure": credit_params_structure,
         "credit_parameters_stress": credit_params_stress,
+        "leading_predictiveness": predictiveness,
+        "cohort_leading_vs_final": cohort_leading,
     }
 
     if persist:

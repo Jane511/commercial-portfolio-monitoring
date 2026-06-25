@@ -15,10 +15,17 @@ from .utils import herfindahl_index, top_n_share
 _log = get_logger(__name__)
 
 # Maps a friendly dimension name to the base-table column holding it.
+#   industry — NAICS sector
+#   state    — borrower state (geography)
+#   lender   — ORIGINATING bank / channel (third-party-originator reliance,
+#              APS 220 para 39), NOT the borrower
+#   borrower — single-name / brand-cluster obligor concentration (APS 220 para
+#              35(a); gap review G1). SBA top names are franchise brands.
 DIMENSIONS = {
     "industry": "naics_sector",
     "state": "borrstate",
     "lender": "bankname",
+    "borrower": "borrname",
 }
 
 _EXPOSURE = "grossapproval"
@@ -81,3 +88,43 @@ def hhi_summary(df: pd.DataFrame) -> pd.DataFrame:
                   dimension, hhi, level, exposure_by_seg.shape[0])
 
     return pd.DataFrame.from_records(records)
+
+
+def originator_performance(df: pd.DataFrame, top_n: int = 15,
+                           min_loans: int = 500) -> pd.DataFrame:
+    """Charge-off performance by ORIGINATING lender — third-party oversight.
+
+    APS 220 para 39 / APG 220 paras 307-308: third-party-originated exposures
+    warrant enhanced monitoring. SBA 7(a) loans are written by originating
+    lenders (``bankname``); this surfaces each material originator's realised
+    charge-off rate (count and $) so a poorly-performing channel is visible, not
+    just its volume. Restricted to lenders with at least ``min_loans`` loans so a
+    tiny originator with one default does not top the table, and returned
+    worst-first by count charge-off rate.
+    """
+    grouped = df.groupby("bankname", dropna=False).agg(
+        loan_count=(_EXPOSURE, "size"),
+        exposure=(_EXPOSURE, "sum"),
+        defaults=("is_default", "sum"),
+        nonperforming=("is_nonperforming", "sum"),
+        chargeoff_amount=("grosschargeoffamount", "sum"),
+    )
+    total_exposure = float(df[_EXPOSURE].sum())
+    grouped = grouped[grouped["loan_count"] >= min_loans].copy()
+    grouped["exposure_share"] = (grouped["exposure"] / total_exposure).round(4)
+    grouped["chargeoff_rate_count"] = (grouped["defaults"] / grouped["loan_count"]).round(4)
+    grouped["chargeoff_rate_dollar"] = (grouped["chargeoff_amount"] / grouped["exposure"]).round(4)
+    grouped["nonperforming_rate"] = (grouped["nonperforming"] / grouped["loan_count"]).round(4)
+
+    out = (
+        grouped.sort_values("chargeoff_rate_count", ascending=False)
+        .head(top_n)
+        .reset_index()
+        .rename(columns={"bankname": "originating_lender"})
+    )
+    _log.info(
+        "Originator performance: %d lenders with >=%d loans; worst count rate %.1f%%",
+        int((df.groupby('bankname')[_EXPOSURE].size() >= min_loans).sum()),
+        min_loans, (out['chargeoff_rate_count'].iloc[0] * 100) if len(out) else float('nan'),
+    )
+    return out

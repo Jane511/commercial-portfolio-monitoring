@@ -16,6 +16,8 @@ from .config import (
     LOAN_STATUS_LABELS,
     NAICS_SECTOR_NAMES,
     RAW_COLUMNS,
+    US_STATES_DC,
+    US_TERRITORIES_OTHER,
     load_config,
 )
 from .logger import get_logger
@@ -127,9 +129,20 @@ def data_quality_summary(df: pd.DataFrame, config: dict | None = None) -> pd.Dat
     """One-table data-quality / coverage snapshot of the cleaned portfolio."""
     cfg = config or load_config()
     default_statuses = set(cfg["universe"]["default_statuses"])
+    problem_statuses = set(cfg["universe"].get("problem_exposure_statuses", []))
 
     is_default = df["loanstatus"].isin(default_statuses)
+    is_problem = df["loanstatus"].isin(problem_statuses)
+    is_nonperforming = is_default | is_problem
     total = len(df)
+
+    # Geography domain classification (gap review G22): borrstate carries valid
+    # 50-states+DC plus territories / military / freely-associated states.
+    states = df["borrstate"].astype("string")
+    in_core = states.isin(US_STATES_DC)
+    in_terr = states.isin(US_TERRITORIES_OTHER)
+    unknown_geo = ~(in_core | in_terr)
+
     rows = [
         ("Funded loans", f"{total:,}"),
         ("Approval FY range", f"{int(df['approvalfy'].min())}-{int(df['approvalfy'].max())}"),
@@ -138,9 +151,20 @@ def data_quality_summary(df: pd.DataFrame, config: dict | None = None) -> pd.Dat
         ("Charge-off rate (count)", f"{is_default.mean():.2%}"),
         ("Charge-off rate ($)",
          f"{df.loc[is_default, 'grosschargeoffamount'].sum() / df['grossapproval'].sum():.2%}"),
+        # Non-performing proxy (90+DPD/UTP-aligned; gap review G7) — above charge-off.
+        ("Non-performing loans (NPL proxy, count)", f"{int(is_nonperforming.sum()):,}"),
+        ("Non-performing rate (NPL proxy, count)", f"{is_nonperforming.mean():.2%}"),
         ("Distinct NAICS sectors", f"{df['naics_sector'].nunique()}"),
         ("Distinct borrower states", f"{df['borrstate'].nunique()}"),
-        ("Distinct lenders", f"{df['bankname'].nunique():,}"),
+        ("  of which 50 states + DC", f"{int(in_core.sum()):,} loans"),
+        ("  of which territories / military / FAS", f"{int(in_terr.sum()):,} loans"),
+        ("  of which unrecognised state code", f"{int(unknown_geo.sum()):,} loans"),
+        ("Distinct borrowers (names)", f"{df['borrname'].nunique():,}"),
+        # Reconcile the lender count: nunique() excludes the missing-name bucket
+        # that a dropna=False groupby would add (gap review G22).
+        ("Distinct lenders (named)", f"{df['bankname'].nunique():,}"),
+        ("Missing lender name", f"{int(df['bankname'].isna().sum()):,}"),
+        ("Missing borrower name", f"{int(df['borrname'].isna().sum()):,}"),
         ("Missing NAICS sector", f"{(df['naics_sector'] == 'Unknown / Unclassified').sum():,}"),
         ("Missing approval date", f"{df['approvaldate'].isna().sum():,}"),
         ("Charge-offs missing charge-off date", f"{(is_default & df['chargeoffdate'].isna()).sum():,}"),

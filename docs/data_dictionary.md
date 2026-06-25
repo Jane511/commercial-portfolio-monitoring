@@ -35,16 +35,23 @@ The raw files carry 43 columns; this project reads the subset below
 |---|---|---|
 | `P I F` | Paid in full | Performing |
 | `CURR` | Current | Performing |
-| `CHGOFF` | **Charged off** | **Default** |
+| `CHGOFF` | **Charged off** | **Default** (realised) + non-performing |
 | `CANCLD` | Cancelled (never funded) | **Excluded** from universe |
 | `COMMIT` | Committed (never funded) | **Excluded** from universe |
-| `PURCH(NOT C/O)` | Guaranty purchased, not charged off | Performing (non-default) |
-| `LIQUID` | In liquidation | Non-default (no charge-off booked) |
-| `CLSLN` | Closed loan | Non-default |
-| `DELINQ` / `PSTDUE` / `DEFERD` | Delinquent / past due / deferred | Non-default |
+| `PURCH(NOT C/O)` | Guaranty purchased, not charged off | **Non-performing** (problem exposure / Stage 2) — effective default |
+| `LIQUID` | In liquidation | **Non-performing** (problem exposure / Stage 2) |
+| `DELINQ` / `PSTDUE` | Delinquent / past due | **Non-performing** (problem exposure / Stage 2) |
+| `DEFERD` | Deferred | Non-default (not in the problem-exposure set) |
+| `CLSLN` | Closed loan | Performing (non-default) |
+| `CURR` / `P I F` | Current / paid in full | Performing (non-default) |
+| `SOLDNC` / `SOLDCO` | Sold (not / charged off) | Non-default; loan transferred (negligible volume) |
 
-> Only `CHGOFF` counts as default per the build spec. `CANCLD`/`COMMIT` never
-> funded and are dropped so they don't distort exposure or rates.
+> `CHGOFF` is the realised **default**. The problem-exposure statuses
+> (`DELINQ` / `PSTDUE` / `LIQUID` / `PURCH(NOT C/O)`) are **not** a realised
+> charge-off, but together with `CHGOFF` they make the **non-performing (NPL)
+> proxy** (`is_nonperforming`) — the closest stand-in for the APS 220 reference
+> default (90+DPD/UTP). `CANCLD`/`COMMIT` never funded and are dropped so they
+> don't distort exposure or rates.
 
 ## Derived fields (base table — `src/base_table.py`)
 

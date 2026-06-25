@@ -24,6 +24,7 @@ import numpy as np
 import pandas as pd
 
 from . import concentration as conc
+from . import leading
 from . import vintage as vint
 from .config import load_config
 from .logger import get_logger
@@ -31,6 +32,7 @@ from .logger import get_logger
 _log = get_logger(__name__)
 
 _EXPOSURE = "grossapproval"
+_LOSS = "grosschargeoffamount"
 
 
 def vintage_early_mob_multiple(
@@ -73,6 +75,14 @@ def vintage_early_mob_multiple(
     return (round(multiple, 2) if pred_median > 0 else float("nan")), detail
 
 
+def _segment_exposure_share(base: pd.DataFrame, mask: pd.Series) -> float:
+    """Exposure share of the rows selected by *mask* (0 if the book is empty)."""
+    total = float(base[_EXPOSURE].sum())
+    if total <= 0:
+        return float("nan")
+    return round(float(base.loc[mask, _EXPOSURE].sum()) / total, 4)
+
+
 def _metric_values(base: pd.DataFrame, config: dict | None = None) -> dict[str, float]:
     """Compute every appetite-limit ``basis`` metric from the live book."""
     cfg = config or load_config()
@@ -80,9 +90,28 @@ def _metric_values(base: pd.DataFrame, config: dict | None = None) -> dict[str, 
     hhi = conc.hhi_summary(base).set_index("dimension")
     ind = conc.concentration_by(base, "industry")
     lenders = conc.concentration_by(base, "lender", top_n=20)
+    borrowers = conc.concentration_by(base, "borrower", top_n=20)
+    states = conc.concentration_by(base, "state", top_n=1)
 
     seasoned = base[base["fully_seasoned"]]
     portfolio_co = float(seasoned["is_default"].mean()) if len(seasoned) else float("nan")
+    nonperforming = float(base["is_nonperforming"].mean()) if len(base) else float("nan")
+
+    # Dollar through-the-cycle EL rate = charge-off $ on defaults / total exposure.
+    total_exposure = float(base[_EXPOSURE].sum())
+    el_dollars = float(base.loc[base["is_default"], _LOSS].sum())
+    el_rate = round(el_dollars / total_exposure, 4) if total_exposure > 0 else float("nan")
+
+    # Higher-risk product / segment shares (by exposure).
+    revolving_share = _segment_exposure_share(
+        base, base["loan_structure"] == "Revolving line of credit")
+    small_ticket_share = _segment_exposure_share(
+        base, base["size_band"].astype("string") == "<=50k")
+
+    # Latest-cohort origination growth (YoY exposure). Drop NaN (first cohort).
+    trend = leading.origination_trend(base, config=cfg)
+    growth_series = trend["exposure_yoy_growth"].dropna()
+    origination_growth = round(float(growth_series.iloc[-1]), 4) if len(growth_series) else float("nan")
 
     vd_multiple, _ = vintage_early_mob_multiple(base, config=cfg)
 
@@ -91,6 +120,14 @@ def _metric_values(base: pd.DataFrame, config: dict | None = None) -> dict[str, 
         "top_industry_share": float(ind.iloc[0]["exposure_share"]) if len(ind) else float("nan"),
         "top1_lender_share": float(lenders.iloc[0]["exposure_share"]) if len(lenders) else float("nan"),
         "top20_lender_share": round(float(lenders["exposure_share"].sum()), 4),
+        "top1_borrower_share": float(borrowers.iloc[0]["exposure_share"]) if len(borrowers) else float("nan"),
+        "top20_borrower_share": round(float(borrowers["exposure_share"].sum()), 4),
+        "top_state_share": float(states.iloc[0]["exposure_share"]) if len(states) else float("nan"),
+        "revolving_product_share": revolving_share,
+        "small_ticket_share": small_ticket_share,
+        "origination_growth_yoy": origination_growth,
+        "el_rate": el_rate,
+        "nonperforming_rate": round(nonperforming, 4),
         "portfolio_chargeoff_rate": round(portfolio_co, 4),
         "vintage_early_mob_multiple": vd_multiple,
     }
@@ -126,6 +163,7 @@ def appetite_dashboard(base: pd.DataFrame, config: dict | None = None) -> pd.Dat
     ra = cfg["risk_appetite"]
     default_owner = ra.get("default_owner", "Head of Credit Risk")
     default_cycle = ra.get("default_review_cycle", "Quarterly")
+    hhi_tol = float(cfg.get("concentration", {}).get("hhi_tolerance_band", 0.0))
 
     values = _metric_values(base, config=cfg)
 
@@ -138,6 +176,15 @@ def appetite_dashboard(base: pd.DataFrame, config: dict | None = None) -> pd.Dat
         rag = _rag(value, amber, red, direction)
         utilisation = (round(value / red, 3)
                        if direction == "upper" and red and pd.notna(value) else np.nan)
+        # Tolerance band (gap review G23): a marginal breach (by < tolerance) is
+        # flagged rather than treated as a hard step-change. Applies where a limit
+        # carries a `tolerance`, or to the industry-HHI limit via config.
+        tol = float(lim.get("tolerance", hhi_tol if lim["id"] == "industry_hhi" else 0.0))
+        within_tol = False
+        if tol > 0 and direction == "upper" and pd.notna(value):
+            bound = red if rag == "RED" else amber if rag == "AMBER" else None
+            if bound is not None and (value - bound) < tol:
+                within_tol = True
         rows.append({
             "id": lim["id"],
             "metric": lim["metric"],
@@ -147,6 +194,7 @@ def appetite_dashboard(base: pd.DataFrame, config: dict | None = None) -> pd.Dat
             "red": red,
             "direction": direction,
             "rag": rag,
+            "within_tolerance_band": within_tol,
             "utilisation_vs_red": utilisation,
             "owner": lim.get("owner", default_owner),
             "breach_action": lim["breach_action"],

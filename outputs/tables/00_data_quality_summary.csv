@@ -5,9 +5,17 @@ Total gross approval ($),"287,809,010,585"
 Charged-off loans (count),"132,662"
 Charge-off rate (count),12.20%
 Charge-off rate ($),4.92%
+"Non-performing loans (NPL proxy, count)","142,467"
+"Non-performing rate (NPL proxy, count)",13.11%
 Distinct NAICS sectors,21
 Distinct borrower states,60
-Distinct lenders,"4,221"
+  of which 50 states + DC,"1,075,335 loans"
+  of which territories / military / FAS,"11,684 loans"
+  of which unrecognised state code,0 loans
+Distinct borrowers (names),"910,399"
+Distinct lenders (named),"4,221"
+Missing lender name,27
+Missing borrower name,23
 Missing NAICS sector,"16,922"
 Missing approval date,0
 Charge-offs missing charge-off date,13

@@ -37,6 +37,7 @@ OUTPUT_TABLES = {
     "concentration_industry": TABLES_DIR / "02_concentration_industry.csv",
     "concentration_state": TABLES_DIR / "02_concentration_state.csv",
     "concentration_lender": TABLES_DIR / "02_concentration_lender.csv",
+    "concentration_borrower": TABLES_DIR / "02_concentration_borrower.csv",
     "concentration_hhi": TABLES_DIR / "02_concentration_hhi_summary.csv",
     "chargeoff_by_industry": TABLES_DIR / "03_chargeoff_by_industry.csv",
     "chargeoff_by_size": TABLES_DIR / "03_chargeoff_by_size_band.csv",
@@ -46,6 +47,7 @@ OUTPUT_TABLES = {
     "early_warning": TABLES_DIR / "04_early_warning_segments.csv",
     "problem_exposure_overview": TABLES_DIR / "04_problem_exposure_overview.csv",
     "problem_exposure_by_industry": TABLES_DIR / "04_problem_exposure_by_industry.csv",
+    "originator_performance": TABLES_DIR / "04_originator_performance.csv",
     "stage_proxy": TABLES_DIR / "05_stage_proxy_summary.csv",
     "aps330_credit_quality": TABLES_DIR / "05_aps330_style_credit_quality.csv",
     "risk_appetite_dashboard": TABLES_DIR / "06_risk_appetite_dashboard.csv",
@@ -60,6 +62,8 @@ OUTPUT_TABLES = {
     "credit_parameters_by_product": TABLES_DIR / "09_credit_risk_parameters_by_product.csv",
     "credit_parameters_by_structure": TABLES_DIR / "09_credit_risk_parameters_by_structure.csv",
     "credit_parameters_stress": TABLES_DIR / "09_credit_risk_parameters_stress.csv",
+    "leading_predictiveness": TABLES_DIR / "10_leading_predictiveness.csv",
+    "cohort_leading_vs_final": TABLES_DIR / "10_cohort_leading_vs_final.csv",
 }
 
 # --------------------------------------------------------------------------- #
@@ -81,7 +85,23 @@ LOAN_STATUS_LABELS = {
     "DELINQ": "Delinquent",
     "PSTDUE": "Past due",
     "DEFERD": "Deferred",
+    "SOLDNC": "Sold (not charged off)",
+    "SOLDCO": "Sold (charged off)",
 }
+
+# Geographic domain (G22 data-quality classification). SBA `borrstate` carries
+# 50 states + DC plus US territories, military ("AE") and freely-associated
+# states — all valid, but worth classifying so a non-core-US build-up is visible.
+US_STATES_DC = {
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID",
+    "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS",
+    "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK",
+    "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV",
+    "WI", "WY", "DC",
+}
+# Territories, military post codes and freely-associated states (valid, non-core).
+US_TERRITORIES_OTHER = {"PR", "VI", "GU", "AS", "MP", "AE", "AP", "AA",
+                        "FM", "MH", "PW"}
 
 # NAICS 2-digit sector prefix -> sector name (2017 NAICS structure). Several
 # sectors span a range of 2-digit codes, hence the repeated names.

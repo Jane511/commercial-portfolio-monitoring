@@ -32,6 +32,15 @@ _log = get_logger(__name__)
 _EXPOSURE = "grossapproval"
 
 
+def _status_signal(status: str) -> str:
+    """Forward-looking signal label for a problem-exposure status."""
+    if status == "LIQUID":
+        return "Leading — near-certain future charge-off (in liquidation)"
+    if status == "PURCH(NOT C/O)":
+        return "Non-performing — SBA guaranty purchased (effective default, not yet written off)"
+    return "Leading — pre-charge-off problem exposure"
+
+
 def problem_exposure_overview(df: pd.DataFrame, config: dict | None = None) -> pd.DataFrame:
     """Portfolio-level problem-exposure pipeline, one row per problem status.
 
@@ -57,8 +66,7 @@ def problem_exposure_overview(df: pd.DataFrame, config: dict | None = None) -> p
             "exposure": exposure,
             "count_share": round(count / total_count, 6) if total_count else 0.0,
             "exposure_share": round(exposure / total_exposure, 6) if total_exposure else 0.0,
-            "signal": "Leading — near-certain future charge-off" if status == "LIQUID"
-                      else "Leading — pre-charge-off problem exposure",
+            "signal": _status_signal(status),
         })
 
     # Total problem-exposure pipeline row.

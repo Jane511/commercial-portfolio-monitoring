@@ -1,0 +1,4 @@
+indicator,cohorts,spearman_vs_final_chargeoff,verdict
+Early-MOB charge-off rate,16,0.866,Predictive (confirmed leading)
+Large-ticket origination share,16,-0.256,Weak / not predictive
+Top-sector origination share,16,0.159,Weak / not predictive

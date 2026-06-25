@@ -20,6 +20,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from . import credit_parameters as cp
 from . import risk_appetite as ra
 from .config import load_config
 from .logger import get_logger
@@ -27,6 +28,14 @@ from .logger import get_logger
 _log = get_logger(__name__)
 
 _EXPOSURE = "grossapproval"
+
+
+def _limit(cfg: dict, limit_id: str) -> dict:
+    """Return the risk-appetite limit dict with id == *limit_id* (or raise)."""
+    limit = next((l for l in cfg["risk_appetite"]["limits"] if l["id"] == limit_id), None)
+    if limit is None:
+        raise KeyError(f"stress limit id '{limit_id}' not in risk_appetite.limits")
+    return limit
 
 
 def crisis_multiplier(base: pd.DataFrame, config: dict | None = None) -> dict:
@@ -54,58 +63,85 @@ def crisis_multiplier(base: pd.DataFrame, config: dict | None = None) -> dict:
 
 
 def stress_scenario(base: pd.DataFrame, config: dict | None = None) -> pd.DataFrame:
-    """Apply the crisis multiplier to the book and re-test the charge-off limit.
+    """Run the stress ladder and re-test the charge-off AND dollar-EL limits.
 
-    Returns a one/two-row scenario table: the baseline charge-off rate and its
-    RAG vs the appetite limit, then the stressed rate and its RAG, plus the
-    implied additional charge-off exposure ($) and whether appetite is breached.
+    Four scenarios (gap review G18/G19), each tested against TWO appetite limits:
+
+      * **Baseline** — current seasoned book.
+      * **Adverse** — historical crisis replay: the 2006-08 charge-off multiplier
+        applied to the baseline.
+      * **Severe** — the single worst observed vintage's charge-off rate.
+      * **Hypothetical overlay** — a forward management severity beyond the
+        historical replay (``stress.hypothetical_overlay_multiplier`` on severe).
+
+    Each row carries the charge-off rate and its RAG vs the charge-off-rate
+    limit, the dollar EL rate and its RAG vs the EL-rate limit (so stressed
+    LGD/EAD severity is bounded by appetite), the implied charge-off exposure ($)
+    and the additional ($) vs baseline. ``breaches_appetite`` is true if either
+    limit is amber/red.
     """
     cfg = config or load_config()
     mult = crisis_multiplier(base, config=cfg)
 
-    # Look up the charge-off-rate appetite limit (amber/red bounds).
-    limit_id = cfg["stress"].get("chargeoff_limit_id", "portfolio_chargeoff_rate")
-    limit = next((l for l in cfg["risk_appetite"]["limits"] if l["id"] == limit_id), None)
-    if limit is None:
-        raise KeyError(f"stress.chargeoff_limit_id '{limit_id}' not in risk_appetite.limits")
-    amber, red, direction = float(limit["amber"]), float(limit["red"]), limit.get("direction", "upper")
+    # Two appetite limits the stress is read against.
+    co_limit = _limit(cfg, cfg["stress"].get("chargeoff_limit_id", "portfolio_chargeoff_rate"))
+    el_limit = _limit(cfg, cfg["stress"].get("el_limit_id", "el_rate"))
+    co_amber, co_red = float(co_limit["amber"]), float(co_limit["red"])
+    el_amber, el_red = float(el_limit["amber"]), float(el_limit["red"])
 
+    # EL-rate ladder, taken from the parameter stress so §9 and §10d reconcile.
+    cps = cp.credit_risk_parameters_stress(base, config=cfg).set_index("metric_key")
+    el_ttc = float(cps.loc["el_rate", "through_the_cycle"])
+    el_adverse = float(cps.loc["el_rate", "adverse_downturn"])
+    el_severe = float(cps.loc["el_rate", "severe"])
+
+    # Charge-off-rate ladder.
     baseline_rate = mult["baseline_chargeoff_rate"]
     multiplier = mult["multiplier"]
-    stressed_rate = round(baseline_rate * multiplier, 4) if pd.notna(multiplier) else float("nan")
+    adverse_rate = round(baseline_rate * multiplier, 4) if pd.notna(multiplier) else float("nan")
+    seasoned = base[base["fully_seasoned"]]
+    severe_rate = round(float(seasoned.groupby("vintage", observed=True)["is_default"].mean().max()), 4) \
+        if len(seasoned) else float("nan")
+    overlay = float(cfg["stress"].get("hypothetical_overlay_multiplier", 1.25))
+    hypo_rate = round(severe_rate * overlay, 4) if pd.notna(severe_rate) else float("nan")
+    el_hypo = round(el_severe * overlay, 4)
 
     total_exposure = float(base[_EXPOSURE].sum())
     baseline_co_dollars = baseline_rate * total_exposure
-    stressed_co_dollars = stressed_rate * total_exposure if pd.notna(stressed_rate) else float("nan")
-    additional_dollars = (stressed_co_dollars - baseline_co_dollars
-                          if pd.notna(stressed_rate) else float("nan"))
 
-    rows = [
-        {
-            "scenario": "Baseline (current book)",
-            "chargeoff_rate": baseline_rate,
-            "rag_vs_limit": ra._rag(baseline_rate, amber, red, direction),
-            "implied_chargeoff_exposure": round(baseline_co_dollars, 0),
-            "additional_vs_baseline": 0.0,
-        },
-        {
-            "scenario": f"Crisis stress ({multiplier:.2f}x, {mult['crisis_vintages']})",
-            "chargeoff_rate": stressed_rate,
-            "rag_vs_limit": ra._rag(stressed_rate, amber, red, direction),
-            "implied_chargeoff_exposure": round(stressed_co_dollars, 0) if pd.notna(stressed_co_dollars) else np.nan,
-            "additional_vs_baseline": round(additional_dollars, 0) if pd.notna(additional_dollars) else np.nan,
-        },
+    specs = [
+        ("Baseline (current book)", baseline_rate, el_ttc),
+        (f"Adverse — historical crisis ({multiplier:.2f}x, {mult['crisis_vintages']})",
+         adverse_rate, el_adverse),
+        (f"Severe — worst vintage ({int(cps['severe_vintage'].iloc[0])})", severe_rate, el_severe),
+        (f"Hypothetical overlay ({overlay:.2f}x severe)", hypo_rate, el_hypo),
     ]
+    rows = []
+    for name, co_rate, el_rate in specs:
+        co_dollars = co_rate * total_exposure if pd.notna(co_rate) else float("nan")
+        rag_co = ra._rag(co_rate, co_amber, co_red, "upper")
+        rag_el = ra._rag(el_rate, el_amber, el_red, "upper")
+        rows.append({
+            "scenario": name,
+            "chargeoff_rate": co_rate,
+            "rag_vs_chargeoff_limit": rag_co,
+            "el_rate": el_rate,
+            "rag_vs_el_limit": rag_el,
+            "implied_chargeoff_exposure": round(co_dollars, 0) if pd.notna(co_dollars) else np.nan,
+            "additional_vs_baseline": round(co_dollars - baseline_co_dollars, 0) if pd.notna(co_dollars) else np.nan,
+            "breaches_appetite": rag_co in ("AMBER", "RED") or rag_el in ("AMBER", "RED"),
+        })
+
     out = pd.DataFrame(rows)
-    out["limit_amber"] = amber
-    out["limit_red"] = red
-    out["breaches_appetite"] = out["rag_vs_limit"].isin(["AMBER", "RED"])
+    out["chargeoff_limit_amber"] = co_amber
+    out["chargeoff_limit_red"] = co_red
+    out["el_limit_amber"] = el_amber
+    out["el_limit_red"] = el_red
 
     _log.info(
-        "Stress scenario: baseline %.2f%% (%s) -> stressed %.2f%% (%s), "
-        "+$%.0f charge-off exposure",
-        baseline_rate * 100, rows[0]["rag_vs_limit"],
-        (stressed_rate * 100) if pd.notna(stressed_rate) else float("nan"),
-        rows[1]["rag_vs_limit"], additional_dollars if pd.notna(additional_dollars) else float("nan"),
+        "Stress ladder: baseline CO %.1f%%/EL %.1f%% -> adverse %.1f%%/%.1f%% -> "
+        "severe %.1f%%/%.1f%% -> hypothetical %.1f%%/%.1f%%",
+        baseline_rate * 100, el_ttc * 100, adverse_rate * 100, el_adverse * 100,
+        severe_rate * 100, el_severe * 100, hypo_rate * 100, el_hypo * 100,
     )
     return out

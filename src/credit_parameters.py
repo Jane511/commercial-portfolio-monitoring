@@ -40,11 +40,13 @@ _EXPOSURE = "grossapproval"
 _GUARANTEE = "sbaguaranteedapproval"
 _LOSS = "grosschargeoffamount"
 
-# Column order for the wide per-segment parameter tables.
+# Column order for the wide per-segment parameter tables. ``pd_count_npl`` /
+# ``pd_dollar_npl`` are the non-performing (90+DPD/UTP-proxy) PDs reported beside
+# the narrower charge-off PD (gap review G7).
 _PARAM_COLUMNS = [
-    "loan_count", "defaults",
+    "loan_count", "defaults", "nonperforming",
     "ead_total", "ead_avg", "ead_avg_defaulted",
-    "pd_count", "pd_dollar",
+    "pd_count", "pd_dollar", "pd_count_npl", "pd_dollar_npl",
     "lgd", "el_amount", "el_rate", "el_per_loan",
 ]
 
@@ -54,6 +56,7 @@ def _parameter_frame(df: pd.DataFrame, group_col: str | None, label: str) -> pd.
     d = df.copy()
     d["_def_ead"] = d[_EXPOSURE].where(d["is_default"], 0.0)
     d["_def_loss"] = d[_LOSS].where(d["is_default"], 0.0)
+    d["_npl_ead"] = d[_EXPOSURE].where(d["is_nonperforming"], 0.0)
 
     if group_col is None:
         d["_seg"] = label
@@ -64,14 +67,19 @@ def _parameter_frame(df: pd.DataFrame, group_col: str | None, label: str) -> pd.
     g = d.groupby(gcol, dropna=False, observed=True).agg(
         loan_count=(_EXPOSURE, "size"),
         defaults=("is_default", "sum"),
+        nonperforming=("is_nonperforming", "sum"),
         ead_total=(_EXPOSURE, "sum"),
         ead_defaulted=("_def_ead", "sum"),
+        ead_nonperforming=("_npl_ead", "sum"),
         el_amount=("_def_loss", "sum"),
     )
 
     # Parameters. Guard the defaulted-only ratios against zero-default segments.
     g["pd_count"] = (g["defaults"] / g["loan_count"]).round(4)
     g["pd_dollar"] = (g["ead_defaulted"] / g["ead_total"]).round(4)
+    # Non-performing PD — the broader 90+DPD/UTP-proxy default (gap review G7).
+    g["pd_count_npl"] = (g["nonperforming"] / g["loan_count"]).round(4)
+    g["pd_dollar_npl"] = (g["ead_nonperforming"] / g["ead_total"]).round(4)
     g["lgd"] = (g["el_amount"] / g["ead_defaulted"].where(g["ead_defaulted"] > 0)).round(4)
     g["ead_avg"] = (g["ead_total"] / g["loan_count"]).round(0)
     g["ead_avg_defaulted"] = (g["ead_defaulted"] / g["defaults"].where(g["defaults"] > 0)).round(0)

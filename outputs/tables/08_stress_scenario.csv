@@ -1,3 +1,5 @@
-scenario,chargeoff_rate,rag_vs_limit,implied_chargeoff_exposure,additional_vs_baseline,limit_amber,limit_red,breaches_appetite
-Baseline (current book),0.1346,AMBER,38739092825.0,0.0,0.12,0.16,True
-"Crisis stress (1.93x, [2006, 2007, 2008])",0.2598,RED,74772780950.0,36033688125.0,0.12,0.16,True
+scenario,chargeoff_rate,rag_vs_chargeoff_limit,el_rate,rag_vs_el_limit,implied_chargeoff_exposure,additional_vs_baseline,breaches_appetite,chargeoff_limit_amber,chargeoff_limit_red,el_limit_amber,el_limit_red
+Baseline (current book),0.1346,AMBER,0.0492,GREEN,38739092825.0,0.0,True,0.12,0.16,0.05,0.07
+"Adverse — historical crisis (1.93x, [2006, 2007, 2008])",0.2598,RED,0.1531,RED,74772780950.0,36033688125.0,True,0.12,0.16,0.05,0.07
+Severe — worst vintage (2007),0.2882,RED,0.1756,RED,82946556850.0,44207464026.0,True,0.12,0.16,0.05,0.07
+Hypothetical overlay (1.25x severe),0.3603,RED,0.2195,RED,103697586514.0,64958493689.0,True,0.12,0.16,0.05,0.07
